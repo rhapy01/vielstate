@@ -3,13 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ShieldCap API — confidential real estate tokenization platform
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: property
+    description: Property information and metrics
+  - name: contract
+    description: Smart contract configuration
+  - name: transactions
+    description: Transaction activity
+  - name: dividends
+    description: Dividend distribution history
+  - name: investor
+    description: Investor-specific data
 paths:
   /healthz:
     get:
@@ -24,6 +34,187 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /property:
+    get:
+      operationId: getProperty
+      tags: [property]
+      summary: Get property details
+      description: Public property information for Kampala Heights Apartments
+      responses:
+        "200":
+          description: Property details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+
+  /property/metrics:
+    get:
+      operationId: getPropertyMetrics
+      tags: [property]
+      summary: Get public property metrics
+      description: Aggregated public metrics — no investor information exposed
+      responses:
+        "200":
+          description: Public property metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropertyMetrics"
+
+  /contract/config:
+    get:
+      operationId: getContractConfig
+      tags: [contract]
+      summary: Get contract configuration
+      description: Returns deployed contract address, ABI, and network info
+      responses:
+        "200":
+          description: Contract configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractConfig"
+
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List public transaction activity
+      description: Returns transaction events — types and timestamps only, no amounts or investor details
+      responses:
+        "200":
+          description: Transaction activity list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransactionEvent"
+
+  /dividends:
+    get:
+      operationId: listDividendRounds
+      tags: [dividends]
+      summary: List dividend distribution rounds
+      description: Returns public dividend rounds — total amounts distributed, no per-investor data
+      responses:
+        "200":
+          description: Dividend rounds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DividendRound"
+
+  /dividends/distribute:
+    post:
+      operationId: triggerDividendDistribution
+      tags: [dividends]
+      summary: Trigger a new dividend distribution
+      description: Records a new dividend round and stores the on-chain distribution metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DividendInput"
+      responses:
+        "201":
+          description: Distribution triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DividendRound"
+
+  /investor/{walletAddress}:
+    get:
+      operationId: getInvestorProfile
+      tags: [investor]
+      summary: Get investor profile
+      description: Returns investor profile and transaction count — no encrypted balance (decrypted client-side via fhevmjs)
+      parameters:
+        - name: walletAddress
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Investor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvestorProfile"
+        "404":
+          description: Investor not found
+
+  /investor/{walletAddress}/transactions:
+    get:
+      operationId: getInvestorTransactions
+      tags: [investor]
+      summary: Get investor transaction history
+      description: Returns transaction events associated with the investor wallet — counts only, no amounts
+      parameters:
+        - name: walletAddress
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Investor transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransactionEvent"
+
+  /investor/{walletAddress}/dividends:
+    get:
+      operationId: getInvestorDividends
+      tags: [investor]
+      summary: Get investor dividend records
+      description: Returns dividend round participation records for an investor — no payout amounts (decrypted client-side)
+      parameters:
+        - name: walletAddress
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Investor dividend records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InvestorDividendRecord"
+
+  /investor:
+    post:
+      operationId: registerInvestor
+      tags: [investor]
+      summary: Register investor
+      description: Register or update an investor wallet address in the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvestorInput"
+      responses:
+        "201":
+          description: Investor registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvestorProfile"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +225,152 @@ components:
       required:
         - status
 
+    Property:
+      type: object
+      required: [id, name, location, description, valueUsd, totalShares, pricePerShare, imageUrl, status]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        location:
+          type: string
+        description:
+          type: string
+        valueUsd:
+          type: number
+        totalShares:
+          type: integer
+        pricePerShare:
+          type: number
+        imageUrl:
+          type: string
+        status:
+          type: string
+          enum: [active, paused, sold]
+
+    PropertyMetrics:
+      type: object
+      required: [totalSharesIssued, totalRevenueDistributedUsd, totalTransactions, totalDividendRounds, investorCount, propertyValueUsd, monthlyRevenueUsd]
+      properties:
+        totalSharesIssued:
+          type: integer
+        totalRevenueDistributedUsd:
+          type: number
+        totalTransactions:
+          type: integer
+        totalDividendRounds:
+          type: integer
+        investorCount:
+          type: integer
+        propertyValueUsd:
+          type: number
+        monthlyRevenueUsd:
+          type: number
+
+    ContractConfig:
+      type: object
+      required: [contractAddress, networkId, networkName, abi]
+      properties:
+        contractAddress:
+          type: string
+        networkId:
+          type: integer
+        networkName:
+          type: string
+        abi:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    TransactionEvent:
+      type: object
+      required: [id, txHash, eventType, timestamp, blockNumber]
+      properties:
+        id:
+          type: integer
+        txHash:
+          type: string
+        eventType:
+          type: string
+          enum: [Purchase, Transfer, DividendDistribution, CapRejected]
+        timestamp:
+          type: string
+          format: date-time
+        blockNumber:
+          type: integer
+        walletAddress:
+          type: ["string", "null"]
+
+    DividendRound:
+      type: object
+      required: [id, roundNumber, totalDistributedUsd, revenueUsd, distributedAt, txHash, status]
+      properties:
+        id:
+          type: integer
+        roundNumber:
+          type: integer
+        totalDistributedUsd:
+          type: number
+        revenueUsd:
+          type: number
+        distributedAt:
+          type: string
+          format: date-time
+        txHash:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+
+    DividendInput:
+      type: object
+      required: [revenueUsd, txHash]
+      properties:
+        revenueUsd:
+          type: number
+        txHash:
+          type: string
+
+    InvestorProfile:
+      type: object
+      required: [id, walletAddress, registeredAt, transactionCount, dividendRoundsParticipated]
+      properties:
+        id:
+          type: integer
+        walletAddress:
+          type: string
+        registeredAt:
+          type: string
+          format: date-time
+        transactionCount:
+          type: integer
+        dividendRoundsParticipated:
+          type: integer
+        displayName:
+          type: ["string", "null"]
+
+    InvestorInput:
+      type: object
+      required: [walletAddress]
+      properties:
+        walletAddress:
+          type: string
+        displayName:
+          type: string
+
+    InvestorDividendRecord:
+      type: object
+      required: [id, roundNumber, distributedAt, status]
+      properties:
+        id:
+          type: integer
+        roundNumber:
+          type: integer
+        distributedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [eligible, excluded]

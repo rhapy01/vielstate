@@ -1,0 +1,1 @@
+- [ShieldCap project structure](shieldcap.md) — full-stack FHE real estate platform; key conventions and gotchas documented
