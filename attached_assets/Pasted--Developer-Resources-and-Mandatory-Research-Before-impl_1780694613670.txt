@@ -1,0 +1,111 @@
+## Developer Resources and Mandatory Research
+
+Before implementation, study the following Zama resources and use official patterns wherever possible.
+
+Official Documentation:
+
+* https://docs.zama.ai
+* https://docs.zama.ai/protocol
+
+Official Repositories:
+
+* https://github.com/zama-ai
+* https://github.com/zama-ai/fhevm-solidity
+
+The implementation must follow Zama best practices for:
+
+### Encrypted Types
+
+Research and use:
+
+* euint8
+* euint16
+* euint32
+* euint64
+* euint128
+* euint256
+* ebool
+* encrypted address patterns if available
+
+### FHE Operations
+
+Research and use:
+
+* Addition
+* Subtraction
+* Multiplication
+* Comparison operations
+* Equality checks
+* Conditional operations
+* Access control mechanisms
+* User decryption flows
+
+### Permissioning
+
+Research:
+
+* Granting users access to decrypt their own values
+* Confidential state access
+* Secure viewing permissions
+* Frontend decryption patterns
+
+### Smart Contract Architecture
+
+Research:
+
+* Confidential ERC20 patterns
+* Confidential balances
+* Transfer mechanisms
+* Ownership verification
+* Encrypted accounting
+
+### Frontend Integration
+
+Research:
+
+* Wallet integration
+* Relayer integration
+* Encryption workflow
+* Decryption workflow
+* User key management
+* Viewing confidential balances
+
+### Dividend Distribution
+
+Implement dividend calculations using encrypted balances.
+
+Requirements:
+
+* Ownership balances remain encrypted.
+* Distribution calculations remain encrypted.
+* Users decrypt only their own results.
+
+### Ownership Cap
+
+Implement ownership-cap enforcement using encrypted comparison operations.
+
+Requirements:
+
+* No public balance disclosure.
+* Validation must occur entirely on encrypted values.
+
+### Confidential Secondary Market
+
+Research how encrypted transfers are implemented within the Zama ecosystem.
+
+Requirements:
+
+* Transfer amounts remain confidential.
+* Ownership balances remain confidential.
+* Ownership-cap validation still functions.
+
+### Portfolio Dashboard
+
+Research best practices for displaying confidential balances and encrypted portfolio metrics.
+
+Requirements:
+
+* Users decrypt and view only their own holdings.
+* Public users cannot infer portfolio composition.
+
+Always prefer official Zama documentation, examples, and reference implementations over custom approaches.
