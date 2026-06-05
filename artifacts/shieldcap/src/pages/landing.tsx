@@ -35,24 +35,30 @@ function useReveal() {
 
 /* ── animated FHE flow diagram ────────────── */
 function FHEFlowDiagram() {
-  const [step, setStep] = useState(0);
-  const [running, setRunning] = useState(false);
+  const [step, setStep] = useState(-1);
+  const [tick, setTick] = useState(0); // increment to force replay
   const { ref, inView } = useInView();
 
+  // Start on first visibility
   useEffect(() => {
     if (!inView) return;
-    const timer = setTimeout(() => setRunning(true), 400);
+    const timer = setTimeout(() => setStep(0), 400);
     return () => clearTimeout(timer);
   }, [inView]);
 
+  // Advance step automatically
   useEffect(() => {
-    if (!running) return;
-    if (step >= 4) return;
+    if (step < 0 || step >= 4) return;
     const t = setTimeout(() => setStep(s => s + 1), 900);
     return () => clearTimeout(t);
-  }, [running, step]);
+  }, [step, tick]);
 
-  const replay = () => { setStep(0); setTimeout(() => setRunning(true), 100); };
+  // Replay: reset to -1 then immediately start at 0
+  const replay = () => {
+    setStep(-1);
+    setTimeout(() => setStep(0), 80);
+    setTick(t => t + 1);
+  };
 
   const nodes = [
     { id: 0, icon: <Users className="w-5 h-5" />, label: "Investor", sub: "8,450 shares", color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300" },
