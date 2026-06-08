@@ -8,12 +8,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  useGetPropertyMetrics, getGetPropertyMetricsQueryKey,
-  useGetProperty, getGetPropertyQueryKey,
   useListDividendRounds, getListDividendRoundsQueryKey,
 } from "@workspace/api-client-react";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { useWallet } from "@/contexts/wallet-context";
+import { usePropertyById, useOnChainPropertyStats } from "@/hooks/use-marketplace";
 import { useCountUp } from "@/hooks/use-count-up";
 import { useInView } from "@/hooks/use-in-view";
 
@@ -61,34 +60,69 @@ function FHEFlowDiagram() {
   };
 
   const nodes = [
-    { id: 0, icon: <Users className="w-5 h-5" />, label: "Investor", sub: "8,450 shares", color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300" },
-    { id: 1, icon: <Key className="w-5 h-5" />, label: "FHE Encrypt", sub: "fhevmjs", color: "bg-primary/5 border-primary/30 text-primary" },
+    { id: 0, icon: <Users className="w-5 h-5" />, label: "Investor", sub: "encrypted amt", color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300" },
+    { id: 1, icon: <Key className="w-5 h-5" />, label: "FHE Encrypt", sub: "relayer SDK", color: "bg-primary/5 border-primary/30 text-primary" },
     { id: 2, icon: <Lock className="w-5 h-5" />, label: "Ciphertext", sub: "0x4F2A…", color: "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300" },
-    { id: 3, icon: <Server className="w-5 h-5" />, label: "Smart Contract", sub: "TFHE ops", color: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-300" },
+    { id: 3, icon: <Server className="w-5 h-5" />, label: "Smart Contract", sub: "FHE ops", color: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-300" },
     { id: 4, icon: <Shield className="w-5 h-5" />, label: "Encrypted Storage", sub: "euint64 mapping", color: "bg-primary/5 border-primary/30 text-primary" },
+  ];
+
+  const stepLabels = [
+    "1. Investor initiates",
+    "2. Amount encrypted",
+    "3. Ciphertext broadcast",
+    "4. Contract processes",
+    "5. Stored encrypted",
   ];
 
   return (
     <div ref={ref as any} className="relative">
-      {/* Nodes row */}
-      <div className="flex items-center justify-between gap-2 flex-wrap md:flex-nowrap">
+      {/* Mobile: vertical flow */}
+      <div className="flex flex-col gap-3 md:hidden">
         {nodes.map((node, i) => (
-          <div key={node.id} className="flex items-center gap-2 flex-1 min-w-0">
-            <div className={`flex-1 rounded-xl border-2 p-4 flex flex-col items-center gap-2 text-center transition-all duration-500 ${node.color} ${step >= i ? "opacity-100 scale-100 shadow-md" : "opacity-30 scale-95"}`}
-              style={{ transitionDelay: `${i * 80}ms` }}>
+          <div key={node.id} className="flex flex-col items-stretch gap-2">
+            <div
+              className={`rounded-xl border-2 p-4 flex flex-col items-center gap-2 text-center transition-all duration-500 ${node.color} ${step >= i ? "opacity-100 scale-100 shadow-md" : "opacity-30 scale-95"}`}
+              style={{ transitionDelay: `${i * 80}ms` }}
+            >
+              <div className={`transition-all duration-300 ${step >= i ? "animate-pulse-glow" : ""}`}>{node.icon}</div>
+              <div className="text-sm font-bold leading-tight">{node.label}</div>
+              <div className="text-xs font-mono opacity-70">{node.sub}</div>
+            </div>
+            <p
+              className={`text-center text-xs font-mono px-2 transition-opacity duration-500 ${step >= i ? "opacity-100 text-foreground" : "opacity-30 text-muted-foreground"}`}
+            >
+              {stepLabels[i]}
+            </p>
+            {i < nodes.length - 1 && (
+              <div className="flex justify-center py-1">
+                <ChevronDown className={`w-5 h-5 ${step > i ? "text-primary" : "text-border"}`} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: horizontal flow */}
+      <div className="hidden md:flex items-stretch justify-between gap-2">
+        {nodes.map((node, i) => (
+          <div key={node.id} className="flex items-center gap-2 flex-1 min-w-0 max-w-[11rem] lg:max-w-none">
+            <div
+              className={`flex-1 rounded-xl border-2 p-3 lg:p-4 flex flex-col items-center gap-2 text-center transition-all duration-500 ${node.color} ${step >= i ? "opacity-100 scale-100 shadow-md" : "opacity-30 scale-95"}`}
+              style={{ transitionDelay: `${i * 80}ms` }}
+            >
               <div className={`transition-all duration-300 ${step >= i ? "animate-pulse-glow" : ""}`}>{node.icon}</div>
               <div className="text-xs font-bold leading-tight">{node.label}</div>
-              <div className="text-[10px] font-mono opacity-70">{node.sub}</div>
+              <div className="text-[10px] font-mono opacity-70 break-all">{node.sub}</div>
             </div>
             {i < nodes.length - 1 && (
-              <svg width="28" height="24" viewBox="0 0 28 24" className="shrink-0">
+              <svg width="20" height="24" viewBox="0 0 28 24" className="shrink-0 hidden lg:block">
                 <line x1="0" y1="12" x2="28" y2="12" stroke="hsl(var(--border))" strokeWidth="2" />
                 <polygon
                   points="18,6 28,12 18,18"
                   fill={step > i ? "hsl(var(--primary))" : "hsl(var(--border))"}
                   className="transition-colors duration-300"
                 />
-                {/* Animated data packet */}
                 {step === i + 1 && (
                   <circle r="4" fill="hsl(var(--primary))" opacity="0.8">
                     <animateMotion dur="0.7s" path="M0,12 L28,12" />
@@ -100,10 +134,12 @@ function FHEFlowDiagram() {
         ))}
       </div>
 
-      {/* Step labels */}
-      <div className="mt-6 grid grid-cols-5 gap-2 text-center text-[11px] font-mono text-muted-foreground">
-        {["1. Investor\ninitiates", "2. Amount\nencrypted", "3. Ciphertext\nbroadcast", "4. Contract\nprocesses", "5. Stored\nencrypted"].map((t, i) => (
-          <div key={i} className={`transition-opacity duration-500 whitespace-pre-line leading-snug ${step >= i ? "opacity-100 text-foreground" : "opacity-30"}`}>{t}</div>
+      {/* Step labels — desktop only (mobile uses inline labels above) */}
+      <div className="mt-6 hidden md:grid grid-cols-5 gap-2 text-center text-[11px] font-mono text-muted-foreground">
+        {stepLabels.map((t, i) => (
+          <div key={i} className={`transition-opacity duration-500 leading-snug px-1 ${step >= i ? "opacity-100 text-foreground" : "opacity-30"}`}>
+            {t}
+          </div>
         ))}
       </div>
 
@@ -111,9 +147,9 @@ function FHEFlowDiagram() {
       <div className={`mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 transition-all duration-700 ${step >= 2 ? "opacity-100" : "opacity-0"}`}>
         {[
           { label: "Public sees", value: "SharesPurchased()", color: "text-foreground", bg: "bg-muted/50" },
-          { label: "Amount visible?", value: "No — encrypted", color: "text-primary font-bold", bg: "bg-primary/5 border border-primary/20" },
+          { label: "Amount visible?", value: "No, encrypted", color: "text-primary font-bold", bg: "bg-primary/5 border border-primary/20" },
           { label: "Balance stored", value: "euint64 handle", color: "text-purple-600 dark:text-purple-300", bg: "bg-purple-50 dark:bg-purple-900/20" },
-          { label: "Cap enforced", value: "TFHE.le(bal, max)", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+          { label: "Cap enforced", value: "FHE.select + le", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
         ].map(({ label, value, color, bg }) => (
           <div key={label} className={`rounded-lg p-3 ${bg}`}>
             <div className="text-[10px] font-mono text-muted-foreground mb-1">{label}</div>
@@ -146,13 +182,13 @@ function LiveStat({ label, prefix = "", suffix = "", value, decimals = 0 }: {
     : count.toLocaleString();
 
   return (
-    <div ref={ref as any} className="flex flex-col gap-2 py-8 px-6">
-      <div className="text-4xl font-bold font-mono tabular-nums">
+    <div ref={ref as any} className="flex flex-col gap-1.5 py-6 px-4 sm:py-8 sm:px-6 min-w-0">
+      <div className="text-xs sm:text-sm text-muted-foreground font-mono leading-snug">{label}</div>
+      <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold font-mono tabular-nums leading-tight break-words">
         <span className="text-primary">{prefix}</span>
         {display}
-        <span className="text-muted-foreground text-2xl">{suffix}</span>
+        <span className="text-muted-foreground text-base sm:text-lg md:text-2xl">{suffix}</span>
       </div>
-      <div className="text-sm text-muted-foreground font-mono">{label}</div>
     </div>
   );
 }
@@ -213,10 +249,10 @@ function StepCard({ n, icon, title, body, active, onClick }: {
 
 /* ── main component ──────────────────────── */
 export default function Landing() {
-  const { data: metrics } = useGetPropertyMetrics({ query: { queryKey: getGetPropertyMetricsQueryKey() } });
-  const { data: property } = useGetProperty({ query: { queryKey: getGetPropertyQueryKey() } });
+  const { data: property } = usePropertyById(1);
+  const { data: onChainStats } = useOnChainPropertyStats(1);
   const { data: dividendRounds } = useListDividendRounds({ query: { queryKey: getListDividendRoundsQueryKey() } });
-  const { connect, address } = useWallet();
+  const { connect, address, isConnecting, error: walletError } = useWallet();
   const [activeStep, setActiveStep] = useState(0);
   const [privacyRevealed, setPrivacyRevealed] = useState(false);
 
@@ -230,10 +266,8 @@ export default function Landing() {
   const problemRef = useReveal();
   const fheRef = useReveal();
 
-  const totalRevenue = metrics?.totalRevenueDistributedUsd ?? 195000;
-  const investorCount = metrics?.investorCount ?? 3;
-  const totalShares = property?.totalShares ?? 50000;
-  const txCount = metrics?.totalTransactions ?? 7;
+  const investorCount = onChainStats?.investorCount ?? 0;
+  const totalShares = property?.totalShares ?? 0;
 
   return (
     <div className="flex flex-col overflow-x-hidden">
@@ -263,7 +297,7 @@ export default function Landing() {
           <div ref={heroRef} className="reveal space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/8 text-primary text-xs font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Powered by Zama Fully Homomorphic Encryption
+              Private fractional property ownership
             </div>
 
             <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight leading-[1.08]">
@@ -272,14 +306,14 @@ export default function Landing() {
             </h1>
 
             <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-              ShieldCap makes fractional real-estate ownership private at the cryptographic level. Your balance, your transfers, your dividends — all encrypted on-chain. No one sees your holdings. Ever.
+              Vielstate lets you own a slice of real estate without broadcasting your position to the world. Your balance, transfers, and dividends stay encrypted. Only you can see your numbers.
             </p>
 
             {/* Live mini-stats floating cards */}
             <div className="flex flex-wrap gap-3">
               {[
-                { icon: <Building className="w-4 h-4" />, value: formatCurrency(property?.valueUsd ?? 5000000), label: "Asset value" },
-                { icon: <Users className="w-4 h-4" />, value: `${investorCount} Investors`, label: "Live" },
+                { icon: <Building className="w-4 h-4" />, value: formatCurrency(property?.valueUsd ?? 0), label: "Listed property value" },
+                { icon: <Users className="w-4 h-4" />, value: investorCount.toLocaleString(), label: "Investors" },
                 { icon: <Lock className="w-4 h-4" />, value: "100% Encrypted", label: "All balances" },
               ].map(c => (
                 <div key={c.label} className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card border border-border shadow-sm hover:border-primary/30 hover:shadow-md transition-all animate-float" style={{ animationDelay: Math.random() * 1 + "s" }}>
@@ -293,13 +327,13 @@ export default function Landing() {
             </div>
 
             <div className="flex flex-wrap gap-4 pt-2">
-              <Link href="/dashboard">
+              <Link href="/explore">
                 <Button size="lg" className="gap-2 font-mono text-sm shadow-lg hover:shadow-primary/20 hover:shadow-xl transition-shadow">
-                  Open Dashboard
+                  Explore Listings
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="/demo">
+              <Link href="/listings/1">
                 <Button variant="outline" size="lg" className="gap-2 font-mono text-sm hover:border-primary/50 transition-colors">
                   <Zap className="w-4 h-4" />
                   See Demo
@@ -330,9 +364,9 @@ export default function Landing() {
                 <div className="text-xl font-bold mb-3">Kampala Heights Apartments</div>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { v: "$5M", l: "Value" },
-                    { v: "50K", l: "Shares" },
-                    { v: "$100", l: "Per Share" },
+                    { v: formatCurrency(property?.valueUsd ?? 0), l: "Value" },
+                    { v: formatNumber(totalShares), l: "Shares" },
+                    { v: "1 tUSDC", l: "Per Share" },
                   ].map(s => (
                     <div key={s.l} className="bg-white/10 backdrop-blur rounded-lg p-2 text-center border border-white/10">
                       <div className="text-sm font-bold font-mono">{s.v}</div>
@@ -347,10 +381,10 @@ export default function Landing() {
             <div className="absolute -right-4 top-12 bg-card border border-border rounded-xl p-4 shadow-xl w-48 animate-float" style={{ animationDelay: "1s" }}>
               <div className="text-[10px] font-mono text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Lock className="w-3 h-3 text-primary" />
-                Your Balance
+                Demo preview
               </div>
-              <div className="text-lg font-bold font-mono blur-sm select-none">8,450 shares</div>
-              <div className="text-[10px] font-mono text-muted-foreground mt-1">Encrypted · Only you can decrypt</div>
+              <div className="text-lg font-bold font-mono blur-sm select-none">████ shares</div>
+              <div className="text-[10px] font-mono text-muted-foreground mt-1">Connect wallet to see yours</div>
             </div>
 
             {/* Floating tx card */}
@@ -375,11 +409,19 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════ LIVE STATS */}
       <section className="border-y border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-border">
-            <LiveStat label="Total Asset Value" prefix="$" value={property?.valueUsd ?? 5000000} />
-            <LiveStat label="Shares Issued" value={totalShares} />
-            <LiveStat label="Revenue Distributed" prefix="$" value={totalRevenue} />
-            <LiveStat label="On-chain Transactions" value={txCount} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border">
+            <div className="bg-card min-w-0">
+              <LiveStat label="Listed Property Value" prefix="$" value={property?.valueUsd ?? 0} />
+            </div>
+            <div className="bg-card min-w-0">
+              <LiveStat label="Share Cap" value={totalShares} />
+            </div>
+            <div className="bg-card min-w-0">
+              <LiveStat label="On-Chain Investors" value={investorCount} />
+            </div>
+            <div className="bg-card min-w-0">
+              <LiveStat label="Price / Share" value={property?.pricePerShare ?? 1} suffix=" tUSDC" />
+            </div>
           </div>
         </div>
       </section>
@@ -389,32 +431,32 @@ export default function Landing() {
         <div ref={problemRef} className="reveal">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-destructive uppercase tracking-wider mb-5">
             <AlertTriangle className="w-3.5 h-3.5" />
-            The Problem
+            The On-Chain Exposure Problem
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div>
               <h2 className="text-3xl font-bold tracking-tight mb-4">
-                Traditional real estate ownership is <span className="text-destructive">dangerously transparent</span>
+                Tokenized real estate on a public chain creates <span className="text-destructive">exposure many investors avoid</span>
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-8">
-                When you register a property or purchase shares on a public blockchain, your wealth, portfolio size, and investment patterns are exposed to competitors, adversaries, and surveillance — permanently and immutably.
+                When real estate is tokenized on a public blockchain, your wallet holdings, transfer sizes, and dividend activity become visible to anyone with a block explorer. That permanent on-chain exposure is why many investors hesitate to bring property positions on-chain.
               </p>
 
               <div className="space-y-4">
                 <ProblemCard
                   icon={<Eye className="w-5 h-5" />}
-                  title="Public Balance Exposure"
-                  body="Any blockchain explorer can reveal exactly how many shares each wallet holds, enabling targeted attacks and wealth profiling."
+                  title="Public Share Exposure"
+                  body="Any blockchain explorer can reveal exactly how many property shares each wallet holds on-chain, enabling targeted attacks and wealth profiling."
                 />
                 <ProblemCard
                   icon={<Globe className="w-5 h-5" />}
                   title="Transfer Amount Visibility"
-                  body="Every peer-to-peer share transfer broadcasts the exact quantity publicly — your trading strategy is completely transparent."
+                  body="Every on-chain share transfer broadcasts the exact quantity publicly. Your trading strategy is completely transparent."
                 />
                 <ProblemCard
                   icon={<FileX className="w-5 h-5" />}
                   title="Dividend Tracking"
-                  body="Revenue distributions can be correlated with balances to reverse-engineer ownership percentages and trading activity."
+                  body="On-chain revenue distributions can be correlated with balances to reverse-engineer ownership percentages and trading activity."
                 />
               </div>
             </div>
@@ -422,13 +464,13 @@ export default function Landing() {
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-5">
                 <Shield className="w-3.5 h-3.5" />
-                The ShieldCap Solution
+                The Vielstate difference
               </div>
               <h2 className="text-3xl font-bold tracking-tight mb-4">
                 Full privacy, enforced at the <span className="gradient-text">cryptographic level</span>
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-8">
-                Zama's fhEVM lets smart contracts compute on encrypted data without ever decrypting it. Ownership caps are enforced, dividends are distributed, transfers are validated — all while your balance remains a ciphertext.
+                Zama's fhEVM lets smart contracts compute on encrypted data without ever decrypting it. Ownership caps are enforced, dividends are distributed, transfers are validated, all while your balance remains a ciphertext.
               </p>
 
               <div className="relative rounded-xl overflow-hidden border border-border shadow-lg">
@@ -460,10 +502,10 @@ export default function Landing() {
                 How FHE Works
               </div>
               <h2 className="text-3xl font-bold tracking-tight mb-3">
-                Encrypted data — computed without decrypting
+                Encrypted data, computed without decrypting
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Fully Homomorphic Encryption lets the smart contract add, subtract, compare, and divide encrypted numbers — producing correct results — without ever seeing the plaintext values.
+                Fully Homomorphic Encryption lets the smart contract add, subtract, compare, and divide encrypted numbers, producing correct results without ever seeing the plaintext values.
               </p>
             </div>
 
@@ -474,9 +516,9 @@ export default function Landing() {
             {/* Mini explainers */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
               {[
-                { icon: <GitMerge className="w-5 h-5" />, title: "Encrypted Arithmetic", body: "TFHE.add(a, b) adds two encrypted numbers. The result is also encrypted. No plaintext ever leaves the ciphertext domain.", code: "TFHE.add(balA, amount)" },
-                { icon: <BarChart3 className="w-5 h-5" />, title: "Encrypted Comparisons", body: "TFHE.le(balance, maxCap) compares encrypted values and returns an encrypted boolean — used to enforce the 20% ownership cap.", code: "TFHE.le(newBal, maxAllowed)" },
-                { icon: <Key className="w-5 h-5" />, title: "Selective Decryption", body: "TFHE.allow(handle, wallet) grants only that wallet the right to decrypt their own balance. Everyone else sees ciphertext.", code: "TFHE.allow(balance, investor)" },
+                { icon: <GitMerge className="w-5 h-5" />, title: "Encrypted Arithmetic", body: "FHE.add(a, b) adds two encrypted numbers. The result is also encrypted. No plaintext ever leaves the ciphertext domain.", code: "FHE.add(balA, amount)" },
+                { icon: <BarChart3 className="w-5 h-5" />, title: "Encrypted Comparisons", body: "FHE.le(balance, maxCap) compares encrypted values and returns an encrypted boolean, used to enforce the 20% ownership cap.", code: "FHE.le(newBal, maxAllowed)" },
+                { icon: <Key className="w-5 h-5" />, title: "Selective Decryption", body: "FHE.allow(handle, wallet) grants only that wallet the right to decrypt their own balance. Everyone else sees ciphertext.", code: "FHE.allow(balance, investor)" },
               ].map(({ icon, title, body, code }) => (
                 <div key={title} className="p-5 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all group">
                   <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">{icon}</div>
@@ -496,16 +538,16 @@ export default function Landing() {
           <div>
             <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-5">
               <Eye className="w-3.5 h-3.5" />
-              Interactive Preview
+              Try the demo
             </div>
             <h2 className="text-3xl font-bold tracking-tight mb-4">
-              Your balance — only yours to see
+              Your balance, only yours to see
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-6">
               Every other investor's balance, every transfer amount, every dividend payout is stored as a ciphertext handle. Only the holder of the wallet key can re-encrypt and decrypt their own data.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Click below to simulate what you would see after connecting your wallet and decrypting your FHE-protected balance.
+              Connect your wallet on Sepolia to decrypt your real FHE-protected on-chain balance.
             </p>
           </div>
 
@@ -516,7 +558,7 @@ export default function Landing() {
                 <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
-                <span className="ml-2">Block Explorer — Public View</span>
+                <span className="ml-2">Block Explorer (Public View)</span>
               </div>
               <div className="p-4 space-y-3">
                 {[
@@ -539,7 +581,7 @@ export default function Landing() {
               <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
                   <Lock className="w-3 h-3 text-primary" />
-                  Your Wallet — Private View
+                  Demo: your private view
                 </div>
                 <Button
                   size="sm"
@@ -569,8 +611,8 @@ export default function Landing() {
             </div>
             <p className="text-xs font-mono text-muted-foreground text-center">
               {privacyRevealed
-                ? "Decryption is performed locally using your wallet key — never sent to a server."
-                : "Click Decrypt above to simulate fhevmjs re-encryption with your private key."}
+                ? "This panel is a demo preview. Connect your wallet on Portfolio to load your real balance."
+                : "Run the demo: connect your wallet on Portfolio to decrypt and view your holdings."}
             </p>
           </div>
         </div>
@@ -586,19 +628,19 @@ export default function Landing() {
             </div>
             <h2 className="text-3xl font-bold tracking-tight">Privacy at every protocol layer</h2>
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto text-sm leading-relaxed">
-              Each feature of ShieldCap uses FHE operations on encrypted data — no plaintext is processed anywhere in the execution flow.
+              Every step (buying, holding, transferring, earning) keeps your amounts private on the blockchain.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <SolutionCard delay={1} icon={<Lock className="w-5 h-5" />} title="Encrypted Balances"
-              body="Share holdings stored as euint64 on-chain. Observers see only the ciphertext handle — never the number." />
+              body="Share holdings stored as euint64 on-chain. Observers see only the ciphertext handle, never the number." />
             <SolutionCard delay={2} icon={<RefreshCw className="w-5 h-5" />} title="Confidential Transfers"
-              body="TFHE.select() conditionally transfers shares without branching on plaintext. Amount never exposed." />
+              body="FHE.select() conditionally transfers shares without branching on plaintext. Amount never exposed." />
             <SolutionCard delay={3} icon={<Banknote className="w-5 h-5" />} title="Private Dividends"
-              body="TFHE.mul/div computes proportional payouts over encrypted balances. Each investor decrypts only their own." />
+              body="FHE.mul/div computes proportional payouts over encrypted balances. Each investor decrypts only their own." />
             <SolutionCard delay={4} icon={<Activity className="w-5 h-5" />} title="FHE Cap Enforcement"
-              body="TFHE.le(newBalance, maxAllowed) enforces the 20% cap without revealing investor holdings." />
+              body="FHE.le(newBalance, maxAllowed) enforces the 20% cap without revealing investor holdings." />
           </div>
         </div>
       </section>
@@ -613,13 +655,13 @@ export default function Landing() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-3">
             <StepCard n={1} icon={<Users className="w-4 h-4" />} title="Connect & Register"
-              body="Connect your Ethereum wallet. Your address is logged on-chain — no personal data, no KYC. You receive a blank encrypted balance handle (euint64 = 0)."
+              body="Connect your Ethereum wallet. Your address is logged on-chain with no personal data and no KYC. You receive a blank encrypted balance handle (euint64 = 0)."
               active={activeStep === 0} onClick={() => setActiveStep(0)} />
             <StepCard n={2} icon={<Lock className="w-4 h-4" />} title="Purchase Encrypted Shares"
-              body="Buy shares by providing an FHE-encrypted purchase amount via fhevmjs. The contract runs TFHE.add and TFHE.le to validate the ownership cap — no balance is revealed."
+              body="Buy shares by providing an FHE-encrypted purchase amount via the Zama relayer SDK. The contract runs FHE.add and FHE.le to validate the ownership cap without revealing any balance."
               active={activeStep === 1} onClick={() => setActiveStep(1)} />
             <StepCard n={3} icon={<TrendingUp className="w-4 h-4" />} title="Earn Private Dividends"
-              body="When the owner distributes revenue, TFHE.mul/div computes your proportional payout over encrypted data. You decrypt only your own payout using your wallet key."
+              body="When the owner distributes revenue, FHE.mul/div computes your proportional payout over encrypted data. You decrypt only your own payout using your wallet key."
               active={activeStep === 2} onClick={() => setActiveStep(2)} />
           </div>
 
@@ -637,10 +679,10 @@ export default function Landing() {
             <div className="absolute bottom-4 left-4 right-4 bg-card/80 backdrop-blur rounded-xl p-4 border border-border">
               <div className="text-xs font-mono text-primary mb-1">Step {activeStep + 1} / 3</div>
               <div className="font-mono text-sm font-bold">
-                {["purchaseShares(einput, proof)", "TFHE.add(balance, amount)", "TFHE.mul(balance, revenue)"][activeStep]}
+                {["purchaseShares(einput, proof)", "FHE.add(balance, amount)", "FHE.mul(balance, revenue)"][activeStep]}
               </div>
               <div className="text-xs font-mono text-muted-foreground mt-1">
-                {["Encrypted amount submitted", "Balance updated — no plaintext", "Proportional payout computed encrypted"][activeStep]}
+                {["Encrypted amount submitted", "Balance updated with no plaintext", "Proportional payout computed encrypted"][activeStep]}
               </div>
             </div>
           </div>
@@ -675,12 +717,12 @@ export default function Landing() {
             <div className="lg:col-span-2 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Asset Value", value: formatCurrency(property?.valueUsd ?? 5000000), color: "text-primary" },
-                  { label: "Shares", value: formatNumber(property?.totalShares ?? 50000), color: "text-foreground" },
-                  { label: "Price / Share", value: formatCurrency(property?.pricePerShare ?? 100), color: "text-foreground" },
+                  { label: "Asset Value", value: formatCurrency(property?.valueUsd ?? 0), color: "text-primary" },
+                  { label: "Shares", value: formatNumber(property?.totalShares ?? 0), color: "text-foreground" },
+                  { label: "Price / Share", value: `${property?.pricePerShare ?? 1} tUSDC`, color: "text-foreground" },
                   { label: "Max Ownership", value: "20%", color: "text-amber-600 dark:text-amber-400" },
-                  { label: "Revenue Distributed", value: formatCurrency(metrics?.totalRevenueDistributedUsd ?? 195000), color: "text-emerald-600 dark:text-emerald-400" },
-                  { label: "Dividend Rounds", value: `${dividendRounds?.length ?? 2} Rounds`, color: "text-foreground" },
+                  { label: "On-Chain Investors", value: String(investorCount), color: "text-emerald-600 dark:text-emerald-400" },
+                  { label: "Dividend Rounds", value: `${dividendRounds?.length ?? 0} Rounds`, color: "text-foreground" },
                 ].map(s => (
                   <div key={s.label} className="p-4 rounded-xl border border-border bg-card hover:border-primary/20 transition-colors">
                     <div className="text-[10px] font-mono text-muted-foreground mb-1 uppercase tracking-wide">{s.label}</div>
@@ -695,9 +737,9 @@ export default function Landing() {
                 </p>
               </div>
 
-              <Link href="/property">
+              <Link href="/listings/1">
                 <Button variant="outline" className="w-full font-mono gap-2">
-                  Full Property Details
+                  View Listing Details
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
@@ -716,38 +758,42 @@ export default function Landing() {
             <Shield className="w-10 h-10 text-primary" />
           </div>
           <h2 className="text-4xl font-extrabold tracking-tight">
-            Start investing with complete privacy
+            Try the demo on Sepolia testnet
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            Connect your wallet and enter a new era of real-estate ownership — where your portfolio is yours alone, enforced by mathematics, not promises.
+            Connect your wallet and buy encrypted shares on Sepolia. Get test tUSDC from the app sidebar after connecting.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {address ? (
-              <Link href="/dashboard">
+              <Link href="/explore">
                 <Button size="lg" className="font-mono gap-2 shadow-lg hover:shadow-primary/25 hover:shadow-xl transition-shadow">
-                  Open Dashboard
+                  Explore Listings
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
             ) : (
-              <Button size="lg" onClick={connect} className="font-mono gap-2 shadow-lg hover:shadow-primary/25 hover:shadow-xl transition-shadow">
-                Connect Wallet
+              <Button size="lg" onClick={() => void connect()} disabled={isConnecting} className="font-mono gap-2 shadow-lg hover:shadow-primary/25 hover:shadow-xl transition-shadow">
+                {isConnecting ? "Connecting..." : "Connect Wallet"}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             )}
-            <Link href="/demo">
+            <Link href="/listings/1">
               <Button variant="outline" size="lg" className="font-mono gap-2 hover:border-primary/50">
                 <Zap className="w-4 h-4" />
-                Run the Interactive Demo
+                Buy Shares
               </Button>
             </Link>
           </div>
 
+          {walletError && !address && (
+            <p className="text-sm font-mono text-destructive">{walletError}</p>
+          )}
+
           <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-mono text-muted-foreground">
             {[
               { icon: <Lock className="w-3.5 h-3.5" />, label: "Zero plaintext on-chain" },
-              { icon: <Shield className="w-3.5 h-3.5" />, label: "Zama fhEVM verified" },
+              { icon: <Shield className="w-3.5 h-3.5" />, label: "Encrypted on-chain" },
               { icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "20% cap enforced cryptographically" },
             ].map(({ icon, label }) => (
               <span key={label} className="flex items-center gap-1.5 text-muted-foreground">

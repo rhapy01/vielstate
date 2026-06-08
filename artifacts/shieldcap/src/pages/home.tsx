@@ -51,7 +51,7 @@ export default function Home() {
           </div>
           
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {property.description} ShieldCap provides confidential, FHE-encrypted ownership records on-chain. Public metrics reflect aggregate data only.
+            {property.description} Vielstate keeps your ownership private on-chain while sharing only public property stats.
           </p>
 
           <div className="grid grid-cols-2 gap-4">
@@ -70,7 +70,7 @@ export default function Home() {
       <h2 className="text-xl font-bold font-sans tracking-tight pt-8 border-t border-border">Public Protocol Metrics</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard icon={<Users />} label="Registered Investors" value={metrics.investorCount.toString()} />
-        <MetricCard icon={<Box />} label="Shares Issued" value={formatNumber(metrics.totalSharesIssued)} />
+        <MetricCard icon={<Box />} label="Share Cap" value={formatNumber(metrics.totalSharesIssued)} />
         <MetricCard icon={<TrendingUp />} label="Revenue Distributed" value={formatCurrency(metrics.totalRevenueDistributedUsd)} />
         <MetricCard icon={<Activity />} label="On-chain Transactions" value={metrics.totalTransactions.toString()} />
       </div>

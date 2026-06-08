@@ -1,8 +1,22 @@
+import { config as loadDotenv } from "dotenv";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+
+function bootstrapEnv(): void {
+  const root = path.resolve(import.meta.dirname, "../..");
+  for (const name of [".ENV", ".env"]) {
+    const file = path.join(root, name);
+    if (existsSync(file)) {
+      loadDotenv({ path: file, override: true });
+    }
+  }
+}
+
+bootstrapEnv();
 
 const rawPort = process.env.PORT;
 
@@ -25,6 +39,8 @@ if (!basePath) {
     "BASE_PATH environment variable is required but was not provided.",
   );
 }
+
+const apiPort = process.env.API_PORT ?? "3001";
 
 export default defineConfig({
   base: basePath,
@@ -58,6 +74,9 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  optimizeDeps: {
+    exclude: ["@zama-fhe/relayer-sdk"],
+  },
   server: {
     port,
     strictPort: true,
@@ -66,10 +85,22 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    proxy: {
+      "/api": {
+        target: `http://127.0.0.1:${apiPort}`,
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port,
     host: "0.0.0.0",
     allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: `http://127.0.0.1:${apiPort}`,
+        changeOrigin: true,
+      },
+    },
   },
 });

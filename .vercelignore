@@ -1,0 +1,13 @@
+node_modules
+.local
+.git
+.cursor
+lib/contracts
+attached_assets
+**/*.map
+**/test
+**/.replit-artifact
+artifacts/api-server/dist
+artifacts/shieldcap/dist
+api/handler.mjs
+api/handler.mjs.map

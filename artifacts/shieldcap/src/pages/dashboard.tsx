@@ -5,9 +5,10 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWallet } from "@/contexts/wallet-context";
+import { TestTokenClaimPanel } from "@/components/test-token-claim-panel";
 
 export default function Dashboard() {
-  const { address, connect } = useWallet();
+  const { address, connect, isConnecting, error: walletError } = useWallet();
   const { data: property, isLoading: isPropLoading } = useGetProperty({ query: { queryKey: getGetPropertyQueryKey() } });
   const { data: metrics, isLoading: isMetricsLoading } = useGetPropertyMetrics({ query: { queryKey: getGetPropertyMetricsQueryKey() } });
 
@@ -17,7 +18,7 @@ export default function Dashboard() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">ShieldCap protocol overview — public aggregate data</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Property overview and public activity. Individual holdings stay private.</p>
         </div>
         <Link href="/property">
           <Button variant="outline" size="sm" className="font-mono gap-1.5 text-xs">
@@ -63,7 +64,7 @@ export default function Dashboard() {
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <div className="text-xs font-mono text-muted-foreground mb-0.5">Price / Share</div>
-                  <div className="font-bold font-mono">{formatCurrency(property.pricePerShare)}</div>
+                  <div className="font-bold font-mono">1 tUSDC</div>
                 </div>
               </div>
             </div>
@@ -81,12 +82,16 @@ export default function Dashboard() {
         ) : metrics && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard icon={<Users className="w-4 h-4" />} label="Investors" value={metrics.investorCount.toString()} />
-            <MetricCard icon={<Box className="w-4 h-4" />} label="Shares Issued" value={formatNumber(metrics.totalSharesIssued)} />
+            <MetricCard icon={<Box className="w-4 h-4" />} label="Share Cap" value={formatNumber(metrics.totalSharesIssued)} />
             <MetricCard icon={<TrendingUp className="w-4 h-4" />} label="Revenue Distributed" value={formatCurrency(metrics.totalRevenueDistributedUsd)} />
             <MetricCard icon={<Activity className="w-4 h-4" />} label="Transactions" value={metrics.totalTransactions.toString()} />
           </div>
         )}
       </div>
+
+      {address ? (
+        <TestTokenClaimPanel />
+      ) : null}
 
       {/* Wallet CTA */}
       {!address && (
@@ -96,20 +101,23 @@ export default function Dashboard() {
           </div>
           <div className="flex-1">
             <h3 className="font-bold mb-1">Access your private portfolio</h3>
-            <p className="text-sm text-muted-foreground">Connect your wallet to decrypt your encrypted share balance, view your dividend history, and initiate confidential transfers.</p>
+            <p className="text-sm text-muted-foreground">Connect your wallet to view your portfolio and dividend history.</p>
           </div>
-          <Button onClick={connect} className="font-mono text-sm shrink-0" data-testid="button-connect-dashboard">
-            Connect Wallet
+          <Button onClick={() => void connect()} disabled={isConnecting} className="font-mono text-sm shrink-0" data-testid="button-connect-dashboard">
+            {isConnecting ? "Connecting..." : "Connect Wallet"}
           </Button>
         </div>
+      )}
+      {walletError && !address && (
+        <p className="text-xs font-mono text-destructive">{walletError}</p>
       )}
 
       {/* Quick nav */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { href: "/portfolio", icon: <Shield className="w-4 h-4" />, label: "My Portfolio", desc: "View encrypted balance & dividends" },
-          { href: "/market", icon: <Activity className="w-4 h-4" />, label: "Market", desc: "Confidential P2P share transfers" },
-          { href: "/demo", icon: <TrendingUp className="w-4 h-4" />, label: "Interactive Demo", desc: "Walk through the FHE protocol" },
+          { href: "/portfolio", icon: <Shield className="w-4 h-4" />, label: "My Portfolio", desc: "Balance & dividends" },
+          { href: "/market", icon: <Activity className="w-4 h-4" />, label: "Market", desc: "Secondary share listings" },
+          { href: "/purchase", icon: <TrendingUp className="w-4 h-4" />, label: "Purchase Shares", desc: "Buy from primary sale" },
         ].map(item => (
           <Link key={item.href} href={item.href}>
             <div className="p-5 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group">
@@ -126,14 +134,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Privacy notice */}
-      <div className="p-4 bg-muted/50 border border-border rounded-lg flex items-start gap-3">
-        <Shield className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-        <p className="text-xs font-mono text-muted-foreground">
-          <span className="text-foreground font-bold">Privacy Guarantee: </span>
-          Individual balances, transfers, and wallet associations are encrypted via Zama fhEVM. The metrics above are provably computed over encrypted state — no decryption occurs.
-        </p>
-      </div>
     </div>
   );
 }

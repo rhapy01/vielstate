@@ -2,6 +2,8 @@
 
 # compiled output
 dist
+api/handler.mjs
+api/handler.mjs.map
 tmp
 out-tsc
 *.tsbuildinfo
@@ -27,6 +29,12 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# env (secrets)
+.env
+.ENV
+.env.*
+!.env.example
+
 # misc
 /.sass-cache
 /connect.lock
@@ -47,3 +55,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+.vercel
+
+# Hardhat / FHE build cache (not source)
+lib/contracts/cache/
+lib/contracts/fhevmTemp/

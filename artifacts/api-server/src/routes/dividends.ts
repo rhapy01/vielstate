@@ -1,12 +1,22 @@
 import { Router } from "express";
+import { z } from "zod";
 import { db } from "@workspace/db";
 import { dividendRoundTable, transactionEventTable } from "@workspace/db";
-import { desc, count } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { TriggerDividendDistributionBody } from "@workspace/api-zod";
+import {
+  ensureDividendRoundsRecorded,
+  syncDividendParticipationForRound,
+} from "../lib/dividend-participation";
 
 const router = Router();
 
+const DistributeBody = TriggerDividendDistributionBody.extend({
+  blockNumber: z.number().int().positive().optional(),
+});
+
 router.get("/", async (req, res) => {
+  await ensureDividendRoundsRecorded();
   const rows = await db
     .select()
     .from(dividendRoundTable)
@@ -24,13 +34,12 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/distribute", async (req, res) => {
-  const parsed = TriggerDividendDistributionBody.safeParse(req.body);
+  const parsed = DistributeBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid request body" });
   }
-  const { revenueUsd, txHash } = parsed.data;
+  const { revenueUsd, txHash, blockNumber } = parsed.data;
 
-  // Get the current max round number
   const [latest] = await db
     .select()
     .from(dividendRoundTable)
@@ -49,14 +58,17 @@ router.post("/distribute", async (req, res) => {
     })
     .returning();
 
-  // Record the transaction event
-  await db.insert(transactionEventTable).values({
-    txHash,
-    eventType: "DividendDistribution",
-    blockNumber: Math.floor(Math.random() * 100000) + 1000000,
-    walletAddress: null,
-    timestamp: new Date(),
-  });
+  if (blockNumber) {
+    await db.insert(transactionEventTable).values({
+      txHash,
+      eventType: "DividendDistribution",
+      blockNumber,
+      walletAddress: null,
+      timestamp: new Date(),
+    });
+  }
+
+  await syncDividendParticipationForRound(round.id, round.roundNumber);
 
   return res.status(201).json({
     id: round.id,

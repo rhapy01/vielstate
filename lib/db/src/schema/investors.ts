@@ -22,6 +22,9 @@ export const investorDividendRecordTable = pgTable("investor_dividend_record", {
 export const contractConfigTable = pgTable("contract_config", {
   id: serial("id").primaryKey(),
   contractAddress: text("contract_address").notNull(),
+  paymentTokenAddress: text("payment_token_address"),
+  paymentTokenSymbol: text("payment_token_symbol").default("tUSDC"),
+  paymentTokenDecimals: integer("payment_token_decimals").default(6),
   networkId: integer("network_id").notNull(),
   networkName: text("network_name").notNull(),
   abi: text("abi").notNull(), // JSON stringified ABI

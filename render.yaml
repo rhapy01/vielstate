@@ -1,0 +1,24 @@
+# One-click hosted demo: API + static frontend on a single URL.
+# Connect this repo in Render → New Blueprint → point at render.yaml
+# Set DATABASE_URL in the Render dashboard (use your Neon connection string).
+
+services:
+  - type: web
+    name: shieldcap
+    runtime: node
+    plan: free
+    buildCommand: npm install -g pnpm@9 && pnpm install --ignore-scripts && pnpm run build:demo
+    startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_WEB
+        value: "true"
+      - key: PORT
+        value: "10000"
+      - key: DATABASE_URL
+        sync: false
+      # Required for /api/faucet/usdc (Sepolia deployer wallet)
+      - key: DEPLOYER_PRIVATE_KEY
+        sync: false

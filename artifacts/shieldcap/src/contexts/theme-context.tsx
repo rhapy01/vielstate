@@ -11,7 +11,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem("shieldcap-theme");
+    const stored = localStorage.getItem("vielstate-theme");
     if (stored === "dark" || stored === "light") return stored;
     return "light";
   });
@@ -23,7 +23,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("shieldcap-theme", theme);
+    localStorage.setItem("vielstate-theme", theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme(t => (t === "light" ? "dark" : "light"));

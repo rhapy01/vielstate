@@ -9,6 +9,9 @@ import type { ContractConfigAbiItem } from './contractConfigAbiItem';
 
 export interface ContractConfig {
   contractAddress: string;
+  paymentTokenAddress?: string | null;
+  paymentTokenSymbol?: string | null;
+  paymentTokenDecimals?: number | null;
   networkId: number;
   networkName: string;
   abi: ContractConfigAbiItem[];

@@ -1,245 +1,442 @@
 import { useState } from "react";
-import { useWallet } from "@/contexts/wallet-context";
-import {
-  useListTransactions, getListTransactionsQueryKey,
-  useRegisterInvestor,
-} from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { formatDate } from "@/lib/format";
-import { Shield, ArrowRight, Lock, RefreshCw, AlertTriangle, Wallet, CheckCircle2, Activity } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { parseUnits } from "ethers";
+import { useWallet, useIsCorrectNetwork } from "@/contexts/wallet-context";
+import { useFhevm } from "@/contexts/fhevm-context";
+import { useShieldCapContract, formatTxError } from "@/hooks/use-shieldcap";
+import { useListProperties, useOnChainListingSupplies } from "@/hooks/use-marketplace";
+import { useRegisterInvestor } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RefreshCw, AlertTriangle, Wallet, ExternalLink, Tag, ShoppingBag } from "lucide-react";
+import { sepoliaTxUrl } from "@/lib/explorer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
 
-const DEMO_TRANSFER_TXS = [
-  { id: 101, txHash: "0xa1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2", eventType: "Transfer", blockNumber: 1048321, timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), walletAddress: null },
-  { id: 102, txHash: "0xb2c3d4e5f6a7b2c3d4e5f6a7b2c3d4e5f6a7b2c3", eventType: "Transfer", blockNumber: 1048290, timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), walletAddress: null },
-  { id: 103, txHash: "0xc3d4e5f6a7b8c3d4e5f6a7b8c3d4e5f6a7b8c3d4", eventType: "CapRejected", blockNumber: 1048185, timestamp: new Date(Date.now() - 3600000 * 8).toISOString(), walletAddress: null },
-];
+function truncateAddr(addr: string) {
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
 
 export default function Market() {
-  const { address, connect } = useWallet();
-  const queryClient = useQueryClient();
+  const { address, connect, isConnecting, isSwitchingChain, error: walletError, signer } = useWallet();
+  const isCorrectNetwork = useIsCorrectNetwork();
+  const { instance, isInitializing } = useFhevm();
+  const {
+    isConfigured,
+    paymentTokenSymbol,
+    paymentTokenDecimals,
+    createSecondaryListing,
+    buySecondaryListing,
+    cancelSecondaryListing,
+    readActiveSecondaryListings,
+    readPropertiesWithBalance,
+    readListingRemainingShares,
+  } = useShieldCapContract();
   const registerInvestor = useRegisterInvestor();
+  const queryClient = useQueryClient();
+  const { data: properties } = useListProperties();
 
-  const [toAddress, setToAddress] = useState("");
-  const [shareAmount, setShareAmount] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState("");
+  const [selectedPropertyId, setSelectedPropertyId] = useState("");
+  const [listShareCount, setListShareCount] = useState("10");
+  const [listPricePerShare, setListPricePerShare] = useState("1");
+  const [buyAmounts, setBuyAmounts] = useState<Record<number, string>>({});
+  const [listError, setListError] = useState("");
+  const [isListing, setIsListing] = useState(false);
+  const [actionError, setActionError] = useState<Record<number, string>>({});
+  const [buyingId, setBuyingId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  const [remainingShares, setRemainingShares] = useState<Record<number, string>>({});
 
-  const { data: transactions, isLoading: txLoading } = useListTransactions({
-    query: { queryKey: getListTransactionsQueryKey() }
+  const tokenLabel = paymentTokenSymbol ?? "ctUSDC";
+
+  const { data: listings, isLoading, refetch } = useQuery({
+    queryKey: ["on-chain-secondary-listings"],
+    queryFn: readActiveSecondaryListings,
+    enabled: isConfigured,
+    refetchInterval: 15_000,
   });
 
-  const transferTxs = transactions
-    ? transactions.filter(tx => tx.eventType === "Transfer" || tx.eventType === "CapRejected")
-    : DEMO_TRANSFER_TXS;
+  const listingIds = listings?.map((l) => l.id) ?? [];
+  const { data: listingSupplies, refetch: refetchSupplies } = useOnChainListingSupplies(listingIds);
 
-  const handleConnect = () => {
-    connect();
-    setTimeout(() => {
-      registerInvestor.mutate({ data: { walletAddress: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F" } });
-    }, 100);
+  const { data: ownedBalances } = useQuery({
+    queryKey: ["owned-share-balances", address],
+    queryFn: () => readPropertiesWithBalance(address!, signer!),
+    enabled: isConfigured && !!address && !!signer,
+    refetchInterval: 15_000,
+  });
+
+  const propertyNameById = (id: number) => properties?.find((p) => p.id === id)?.name ?? `Property #${id}`;
+  const myListings = listings?.filter((l) => address && l.seller === address.toLowerCase()) ?? [];
+
+  const handleCreateListing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setListError("");
+    setLastTxHash(null);
+    if (!address) return;
+
+    const propertyId = parseInt(selectedPropertyId, 10);
+    const shareCount = parseInt(listShareCount, 10);
+    const pricePerShare = parseFloat(listPricePerShare);
+    if (isNaN(propertyId) || propertyId <= 0) {
+      setListError("Select a property");
+      return;
+    }
+    if (isNaN(shareCount) || shareCount <= 0) {
+      setListError("Enter how many shares to list");
+      return;
+    }
+    if (isNaN(pricePerShare) || pricePerShare <= 0) {
+      setListError("Enter a valid price per share");
+      return;
+    }
+
+    setIsListing(true);
+    try {
+      await registerInvestor.mutateAsync({ data: { walletAddress: address } });
+      const priceUnits = parseUnits(pricePerShare.toFixed(paymentTokenDecimals), paymentTokenDecimals);
+      const receipt = await createSecondaryListing(propertyId, shareCount, priceUnits);
+      setLastTxHash(receipt.hash);
+      setSelectedPropertyId("");
+      await refetch();
+      void refetchSupplies();
+      void queryClient.invalidateQueries({ queryKey: ["on-chain-secondary-listings"] });
+      void queryClient.invalidateQueries({ queryKey: ["on-chain-listing-supply"] });
+      void queryClient.invalidateQueries({ queryKey: ["owned-share-balances", address] });
+    } catch (err) {
+      setListError(formatTxError(err));
+    } finally {
+      setIsListing(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitError("");
-
-    if (!toAddress.match(/^0x[0-9a-fA-F]{40}$/)) {
-      setSubmitError("Invalid Ethereum address format");
-      return;
-    }
-    const amount = parseInt(shareAmount, 10);
-    if (isNaN(amount) || amount <= 0) {
-      setSubmitError("Share amount must be a positive number");
+  const handleBuy = async (listingId: number) => {
+    if (!address) return;
+    const amountStr = buyAmounts[listingId];
+    const shareCount = parseInt(amountStr ?? "", 10);
+    if (isNaN(shareCount) || shareCount <= 0) {
+      setActionError((prev) => ({ ...prev, [listingId]: "Enter how many shares to buy" }));
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitted(true);
-    }, 2500);
+    const supply = listingSupplies?.[listingId];
+    if (supply && shareCount > supply.sharesRemaining) {
+      setActionError((prev) => ({
+        ...prev,
+        [listingId]:
+          supply.sharesRemaining === 0
+            ? "This listing is sold out"
+            : `Only ${supply.sharesRemaining} share${supply.sharesRemaining === 1 ? "" : "s"} left`,
+      }));
+      return;
+    }
+
+    setActionError((prev) => ({ ...prev, [listingId]: "" }));
+    setLastTxHash(null);
+    setBuyingId(listingId);
+    try {
+      await registerInvestor.mutateAsync({ data: { walletAddress: address } });
+      const receipt = await buySecondaryListing(listingId, shareCount);
+      setLastTxHash(receipt.hash);
+      await refetch();
+      void refetchSupplies();
+      void queryClient.invalidateQueries({ queryKey: ["on-chain-listing-supply"] });
+      void queryClient.invalidateQueries({ queryKey: ["owned-share-balances", address] });
+    } catch (err) {
+      setActionError((prev) => ({
+        ...prev,
+        [listingId]: formatTxError(err),
+      }));
+    } finally {
+      setBuyingId(null);
+    }
+  };
+
+  const handleRevealRemaining = async (listingId: number, seller: string) => {
+    if (!signer) return;
+    try {
+      const raw = await readListingRemainingShares(listingId, signer, seller);
+      setRemainingShares((prev) => ({ ...prev, [listingId]: String(raw) }));
+    } catch (err) {
+      setActionError((prev) => ({
+        ...prev,
+        [listingId]: err instanceof Error ? err.message : "Could not decrypt remaining shares",
+      }));
+    }
+  };
+
+  const handleCancel = async (listingId: number) => {
+    if (!address) return;
+    setCancellingId(listingId);
+    setLastTxHash(null);
+    try {
+      const receipt = await cancelSecondaryListing(listingId);
+      setLastTxHash(receipt.hash);
+      await refetch();
+      void refetchSupplies();
+      void queryClient.invalidateQueries({ queryKey: ["on-chain-listing-supply"] });
+      void queryClient.invalidateQueries({ queryKey: ["owned-share-balances", address] });
+    } catch (err) {
+      setActionError((prev) => ({
+        ...prev,
+        [listingId]: formatTxError(err),
+      }));
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-3xl font-bold font-mono tracking-tight">Confidential Secondary Market</h1>
-        <p className="text-muted-foreground text-sm font-mono mt-1">
-          Peer-to-peer share transfers — amounts remain encrypted on-chain
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Secondary Market</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          List shares at your price. Buyers purchase any amount at that price — first come, first served.
         </p>
+        <Link href="/explore">
+          <span className="text-xs font-mono text-primary hover:underline cursor-pointer mt-2 inline-block">
+            ← Primary listings on Explore
+          </span>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Transfer form */}
-        <div>
-          <div className="p-6 bg-card border border-border rounded-lg space-y-6">
+      {lastTxHash && (
+        <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 text-xs font-mono flex items-center gap-2">
+          Transaction submitted.
+          <a href={sepoliaTxUrl(lastTxHash)} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+            Etherscan <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 space-y-4">
+          <div className="p-5 bg-card border border-border rounded-xl space-y-4">
             <div className="flex items-center gap-2">
-              <RefreshCw className="w-5 h-5 text-primary" />
-              <h2 className="font-mono font-bold">Confidential Transfer</h2>
+              <Tag className="w-4 h-4 text-primary" />
+              <h2 className="font-mono font-bold text-sm">List shares for sale</h2>
             </div>
 
             {!address ? (
-              <div className="space-y-4">
-                <p className="text-sm font-mono text-muted-foreground">Connect your wallet to initiate a confidential transfer.</p>
-                <Button onClick={handleConnect} className="w-full font-mono" data-testid="button-connect-market">
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Connect Wallet
-                </Button>
-              </div>
-            ) : submitted ? (
-              <div className="flex flex-col items-center gap-4 py-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-primary" />
-                </div>
-                <div className="text-center">
-                  <div className="font-mono font-bold text-primary">Transfer Submitted</div>
-                  <div className="text-xs text-muted-foreground font-mono mt-1">
-                    Your confidential transfer has been broadcast to the Zama network. The amount is encrypted — observers see only the event type.
-                  </div>
-                </div>
-                <div className="w-full p-3 bg-muted/30 rounded text-xs font-mono text-muted-foreground break-all">
-                  Tx: 0x{Math.random().toString(16).slice(2).padEnd(64, "0")}
-                </div>
-                <Button variant="outline" onClick={() => { setSubmitted(false); setToAddress(""); setShareAmount(""); }} className="font-mono text-xs">
-                  New Transfer
+              <div className="space-y-3">
+                <p className="text-xs font-mono text-muted-foreground">Connect to list shares from your balance.</p>
+                <Button onClick={() => void connect()} disabled={isConnecting} className="w-full font-mono text-xs">
+                  <Wallet className="w-3.5 h-3.5 mr-1.5" />
+                  {isConnecting ? "Connecting..." : "Connect Wallet"}
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="font-mono text-xs text-muted-foreground">From</Label>
-                  <div className="px-3 py-2 bg-muted/30 border border-border rounded-md text-xs font-mono text-muted-foreground truncate">
-                    {address}
-                  </div>
-                </div>
-
-                <div className="flex justify-center">
-                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="to-address" className="font-mono text-xs text-muted-foreground">To Address</Label>
-                  <Input
-                    id="to-address"
-                    placeholder="0x..."
-                    value={toAddress}
-                    onChange={e => setToAddress(e.target.value)}
-                    className="font-mono text-xs"
-                    data-testid="input-to-address"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="share-amount" className="font-mono text-xs text-muted-foreground">Share Amount</Label>
-                    <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" />
-                      Encrypted on submit
-                    </span>
-                  </div>
-                  <Input
-                    id="share-amount"
-                    type="number"
-                    placeholder="e.g. 500"
-                    value={shareAmount}
-                    onChange={e => setShareAmount(e.target.value)}
-                    className="font-mono text-xs"
-                    data-testid="input-share-amount"
-                  />
-                  <p className="text-[10px] font-mono text-muted-foreground/70">
-                    Amount is encrypted via fhevmjs before broadcasting. The network sees only a ciphertext.
+              <form onSubmit={handleCreateListing} className="space-y-3">
+                {!isCorrectNetwork && (
+                  <p className="text-xs font-mono text-muted-foreground flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-primary" />
+                    {isSwitchingChain ? "Switching to Sepolia..." : "Confirm Sepolia in wallet"}
                   </p>
-                </div>
-
-                {submitError && (
-                  <div className="flex items-center gap-2 text-destructive text-xs font-mono">
-                    <AlertTriangle className="w-3 h-3" />
-                    {submitError}
-                  </div>
                 )}
-
-                <Button type="submit" disabled={isSubmitting} className="w-full font-mono" data-testid="button-submit-transfer">
-                  {isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
-                      Encrypting &amp; Broadcasting...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Lock className="w-3.5 h-3.5" />
-                      Submit Confidential Transfer
-                    </span>
-                  )}
+                <div className="space-y-1">
+                  <Label className="font-mono text-xs text-muted-foreground">Property</Label>
+                  <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                    <SelectTrigger className="font-mono text-xs h-9">
+                      <SelectValue placeholder={ownedBalances?.length ? "Select property" : "Buy shares first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(ownedBalances ?? []).map((bal) => (
+                        <SelectItem key={bal.propertyId} value={String(bal.propertyId)} className="font-mono text-xs">
+                          {propertyNameById(bal.propertyId)} · {String(bal.shares)} shares
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-mono text-xs text-muted-foreground">Shares to list</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={listShareCount}
+                    onChange={(e) => setListShareCount(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-mono text-xs text-muted-foreground">Price per share ({tokenLabel})</Label>
+                  <Input
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    value={listPricePerShare}
+                    onChange={(e) => setListPricePerShare(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                </div>
+                {listError && <p className="text-xs font-mono text-destructive">{listError}</p>}
+                <Button
+                  type="submit"
+                  disabled={isListing || !isConfigured || !isCorrectNetwork || !instance || !ownedBalances?.length}
+                  className="w-full font-mono text-xs"
+                >
+                  {isListing ? "Listing..." : "Create listing"}
                 </Button>
               </form>
             )}
+
           </div>
 
-          {/* Privacy note */}
-          <div className="mt-4 p-4 bg-primary/5 border border-primary/15 rounded-md flex items-start gap-3">
-            <Shield className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-            <div className="text-xs font-mono text-muted-foreground">
-              <span className="text-primary font-bold block mb-1">How confidential transfers work</span>
-              The share amount is encrypted client-side using fhevmjs before the transaction is sent. The smart contract validates the transfer using encrypted arithmetic — the ownership cap is enforced without revealing balances.
-            </div>
-          </div>
-        </div>
-
-        {/* Transfer activity */}
-        <div className="space-y-4">
-          <h2 className="font-mono font-bold flex items-center gap-2">
-            <Activity className="w-4 h-4 text-primary" />
-            Transfer Activity
-          </h2>
-          <p className="text-xs font-mono text-muted-foreground">
-            Public observers can see that transfers occurred — but not the amounts. Transfer amounts are encrypted on-chain.
-          </p>
-          <div className="border border-border rounded-lg overflow-hidden">
-            {txLoading ? (
-              <div className="p-4 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
-            ) : transferTxs.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-xs font-mono">No transfers yet</div>
-            ) : (
-              <table className="w-full text-xs font-mono">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="px-4 py-2.5 text-left text-muted-foreground font-normal">Event</th>
-                    <th className="px-4 py-2.5 text-left text-muted-foreground font-normal">Amount</th>
-                    <th className="px-4 py-2.5 text-left text-muted-foreground font-normal">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transferTxs.map(tx => (
-                    <tr key={tx.id} className={`border-b border-border hover:bg-muted/20 transition-colors ${tx.eventType === "CapRejected" ? "bg-destructive/5" : ""}`} data-testid={`row-transfer-${tx.id}`}>
-                      <td className="px-4 py-2.5">
-                        <span className={`px-2 py-0.5 rounded border ${tx.eventType === "Transfer" ? "text-blue-400 border-blue-400/30 bg-blue-400/10" : "text-destructive border-destructive/30 bg-destructive/10"}`}>
-                          {tx.eventType === "CapRejected" ? "Cap Rejected" : tx.eventType}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 flex items-center gap-1.5 text-muted-foreground">
-                        <Lock className="w-2.5 h-2.5" />
-                        <span className="italic">encrypted</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{formatDate(tx.timestamp)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-          {transferTxs.some(tx => tx.eventType === "CapRejected") && (
-            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-xs font-mono text-destructive">
-              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
-              A Cap Rejected event indicates an investor attempted to exceed the 20% ownership limit. The transaction was reverted by the FHE-enforced cap rule.
+          {address && myListings.length > 0 && (
+            <div className="p-5 bg-card border border-border rounded-xl space-y-3">
+              <h2 className="font-mono font-bold text-sm">Your listings</h2>
+              {myListings.map((listing) => (
+                <div key={listing.id} className="p-3 bg-muted/40 rounded-lg space-y-2 text-xs font-mono">
+                  <div>
+                    #{listing.id} · {propertyNameById(listing.propertyId)}
+                  </div>
+                  <div className="text-muted-foreground">
+                    {listing.pricePerShare} {tokenLabel}/share
+                  </div>
+                  {listingSupplies?.[listing.id] ? (
+                    <div className="text-muted-foreground">
+                      {listingSupplies[listing.id].sharesRemaining} / {listingSupplies[listing.id].sharesListed} shares left
+                    </div>
+                  ) : remainingShares[listing.id] !== undefined ? (
+                    <div className="text-muted-foreground">
+                      ~{remainingShares[listing.id]} shares remaining
+                    </div>
+                  ) : null}
+                  {!listingSupplies?.[listing.id] && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-[10px] h-7"
+                      onClick={() => void handleRevealRemaining(listing.id, listing.seller)}
+                    >
+                      Show remaining
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-[10px] h-7"
+                    disabled={cancellingId === listing.id}
+                    onClick={() => void handleCancel(listing.id)}
+                  >
+                    {cancellingId === listing.id ? "Cancelling..." : "Cancel listing"}
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </div>
+
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-mono font-bold flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-primary" />
+              On-chain resale listings
+            </h2>
+            <Button variant="ghost" size="sm" onClick={() => void refetch()} className="text-xs font-mono gap-1">
+              <RefreshCw className="w-3 h-3" />
+              Refresh
+            </Button>
+          </div>
+
+          {!isConfigured ? (
+            <div className="p-8 text-center border border-border rounded-xl text-xs font-mono text-muted-foreground">
+              Deploy the updated ShieldCapProperty contract to enable on-chain listings.
+            </div>
+          ) : isLoading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+            </div>
+          ) : !listings?.length ? (
+            <div className="p-10 text-center border border-border rounded-xl">
+              <RefreshCw className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground font-mono">No active on-chain resale listings yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {listings.map((listing) => {
+                const isSeller = address?.toLowerCase() === listing.seller;
+                const err = actionError[listing.id];
+                const supply = listingSupplies?.[listing.id];
+                const sharesLeft = supply?.sharesRemaining;
+                const soldOut = supply != null && supply.sharesRemaining <= 0;
+                const estCost = (parseFloat(buyAmounts[listing.id] ?? "0") || 0) * listing.pricePerShare;
+
+                return (
+                  <div key={listing.id} className="p-4 bg-card border border-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="font-mono font-bold text-sm">
+                        #{listing.id} · {propertyNameById(listing.propertyId)}
+                      </div>
+                      <div className="text-xs font-mono text-muted-foreground">
+                        Seller {truncateAddr(listing.seller)}
+                      </div>
+                      <div className="text-xs font-mono text-primary">
+                        {listing.pricePerShare} {tokenLabel} / share
+                      </div>
+                      {supply ? (
+                        <div className="text-xs font-mono text-foreground">
+                          <span className="font-bold">{sharesLeft}</span>
+                          <span className="text-muted-foreground"> / {supply.sharesListed} shares left</span>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="shrink-0 space-y-2">
+                      {!address ? (
+                        <Button size="sm" onClick={() => void connect()} className="font-mono text-xs">
+                          Connect to buy
+                        </Button>
+                      ) : isSeller ? (
+                        <span className="text-xs font-mono text-muted-foreground">Your listing</span>
+                      ) : soldOut ? (
+                        <span className="text-xs font-mono text-muted-foreground">Sold out</span>
+                      ) : (
+                        <>
+                          <Input
+                            type="number"
+                            min={1}
+                            step={1}
+                            placeholder="Shares to buy"
+                            value={buyAmounts[listing.id] ?? ""}
+                            onChange={(e) =>
+                              setBuyAmounts((prev) => ({ ...prev, [listing.id]: e.target.value }))
+                            }
+                            className="font-mono text-xs h-8 w-36"
+                          />
+                          {estCost > 0 && (
+                            <p className="text-[10px] font-mono text-muted-foreground">
+                              ≈ {estCost.toFixed(2)} {tokenLabel}
+                            </p>
+                          )}
+                          <Button
+                            size="sm"
+                            disabled={buyingId === listing.id || !isCorrectNetwork || isInitializing || !instance}
+                            onClick={() => void handleBuy(listing.id)}
+                            className="font-mono text-xs w-36"
+                          >
+                            {buyingId === listing.id ? "Buying..." : "Buy shares"}
+                          </Button>
+                        </>
+                      )}
+                      {err && <p className="text-[10px] font-mono text-destructive max-w-[180px]">{err}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+        </div>
       </div>
+
+      {walletError && !address && (
+        <p className="text-xs font-mono text-destructive">{walletError}</p>
+      )}
     </div>
   );
 }

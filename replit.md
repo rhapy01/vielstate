@@ -35,7 +35,7 @@ A confidential real-estate ownership platform using Zama fhEVM. Investors purcha
 ## Architecture decisions
 
 - **Contract-first API**: OpenAPI spec in `lib/api-spec/openapi.yaml` drives codegen for both frontend hooks and server Zod validators. Never write types by hand.
-- **FHE simulation on backend**: Until deployed to Zama devnet, the frontend simulates encrypted operations. The backend stores aggregate public data only.
+- **On-chain Sepolia FHEVM**: Frontend uses MetaMask + `@zama-fhe/relayer-sdk` for real encrypt/decrypt and contract calls. Backend stores public event metadata only.
 - **Encrypted balance blur**: Investor balances shown as blurred ciphertext until the user clicks "Decrypt" — simulating fhevmjs re-encryption UX.
 - **20% cap via FHE**: `TFHE.le(newBalance, maxAllowed)` enforces the cap without revealing investor balances. CapRejected events are public; amounts are not.
 - **Dividend computation**: `TFHE.div(TFHE.mul(encBalance, encRevenue), TOTAL_SHARES)` — fully encrypted proportional payout.
@@ -46,11 +46,11 @@ A confidential real-estate ownership platform using Zama fhEVM. Investors purcha
 - **Property** — transaction feed, dividend history, privacy guarantee banner
 - **Portfolio** — private encrypted balance (blur/reveal), ownership %, cap warning, personal transaction history
 - **Market** — confidential P2P share transfer form, transfer activity feed showing only event types (not amounts)
-- **Demo** — 10-step interactive narrative walkthrough of FHE operations with Solidity code snippets
+- **Purchase** — buy shares on Sepolia with FHE-encrypted amounts
 
 ## Deploying the Contract
 
-See `lib/contracts/README.md` for Zama devnet deployment steps. After deploying, insert the contract address into `contract_config` so the API serves it to the frontend.
+See `lib/contracts/README.md` for Sepolia deployment. After deploying, seed `contract_config` via `pnpm --filter @workspace/scripts run seed`.
 
 ## User preferences
 

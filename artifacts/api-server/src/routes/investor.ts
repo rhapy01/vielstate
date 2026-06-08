@@ -6,8 +6,13 @@ import {
   transactionEventTable,
   dividendRoundTable,
 } from "@workspace/db";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, sql } from "drizzle-orm";
 import { RegisterInvestorBody } from "@workspace/api-zod";
+import {
+  ensureDividendRoundsRecorded,
+  syncDividendParticipationForInvestor,
+  syncDividendParticipationForInvestorLenient,
+} from "../lib/dividend-participation";
 
 const router = Router();
 
@@ -113,10 +118,11 @@ router.get("/:walletAddress/transactions", async (req, res) => {
 
 router.get("/:walletAddress/dividends", async (req, res) => {
   const { walletAddress } = req.params;
+  const normalizedWallet = walletAddress.toLowerCase();
   const investorRows = await db
     .select()
     .from(investorTable)
-    .where(eq(investorTable.walletAddress, walletAddress))
+    .where(sql`lower(${investorTable.walletAddress}) = ${normalizedWallet}`)
     .limit(1);
 
   if (!investorRows.length) {
@@ -124,12 +130,25 @@ router.get("/:walletAddress/dividends", async (req, res) => {
   }
   const investor = investorRows[0];
 
-  const records = await db
+  await ensureDividendRoundsRecorded();
+  await syncDividendParticipationForInvestor(investor.id, investor.walletAddress);
+
+  let records = await db
     .select()
     .from(investorDividendRecordTable)
     .where(eq(investorDividendRecordTable.investorId, investor.id))
     .orderBy(desc(investorDividendRecordTable.createdAt))
     .limit(20);
+
+  if (records.length === 0) {
+    await syncDividendParticipationForInvestorLenient(investor.id, investor.registeredAt);
+    records = await db
+      .select()
+      .from(investorDividendRecordTable)
+      .where(eq(investorDividendRecordTable.investorId, investor.id))
+      .orderBy(desc(investorDividendRecordTable.createdAt))
+      .limit(20);
+  }
 
   const dividendRows = await db
     .select()

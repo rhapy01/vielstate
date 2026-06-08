@@ -5,17 +5,42 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy:zama": "hardhat run scripts/deploy.ts --network zamaDevnet",
-    "deploy:local": "hardhat run scripts/deploy.ts --network hardhat"
+    "deploy:sepolia": "hardhat run scripts/deploy-all.ts --network sepolia",
+    "deploy:legacy": "hardhat run scripts/deploy.ts --network sepolia",
+    "deploy:local": "hardhat run scripts/deploy.ts --network hardhat",
+    "check-deployer": "hardhat run scripts/check-deployer.ts --network sepolia",
+    "verify:sepolia": "hardhat run scripts/verify-deployed.ts --network sepolia"
   },
   "devDependencies": {
+    "@fhevm/hardhat-plugin": "^0.4.2",
+    "@fhevm/mock-utils": "0.4.2",
+    "@zama-fhe/relayer-sdk": "0.4.1",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-ignition": "^0.15.16",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.0",
+    "@nomicfoundation/ignition-core": "^0.15.15",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "@types/chai": "^4.2.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^22.0.0",
+    "chai": "^4.2.0",
+    "dotenv": "^16.6.1",
+    "ethers": "^6.16.0",
     "hardhat": "^2.22.0",
-    "typescript": "catalog:",
-    "ts-node": "^10.9.2"
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.8.1",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.0",
+    "typescript": "~5.9.3"
   },
   "dependencies": {
+    "@fhevm/solidity": "^0.11.1",
     "@openzeppelin/contracts": "^5.0.0",
-    "fhevm": "^0.5.0"
+    "encrypted-types": "^0.0.4"
   }
 }

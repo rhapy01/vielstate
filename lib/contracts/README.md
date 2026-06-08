@@ -1,22 +1,8 @@
 # ShieldCap Smart Contracts
 
-Solidity contracts for the ShieldCap confidential real-estate ownership platform, built on [Zama fhEVM](https://docs.zama.ai/fhevm).
+Solidity contracts for the ShieldCap confidential real-estate platform on **Zama FHEVM (Sepolia testnet)**.
 
-## Contracts
-
-### `ShieldCapProperty.sol`
-
-The core property contract. Key properties:
-
-| Concern | Implementation |
-|---|---|
-| Share balances | `mapping(address => euint64)` — fully encrypted |
-| Ownership cap (20%) | `TFHE.le(newBalance, maxAllowed)` — FHE comparison |
-| Transfers | `TFHE.select(canTransfer, ...)` — no plaintext branching |
-| Dividend payouts | `TFHE.div(TFHE.mul(bal, rev), total)` — encrypted arithmetic |
-| Decrypt access | `TFHE.allow(handle, investor)` — per-wallet ACL |
-
-## Getting Started
+## Deploy to Sepolia
 
 ```bash
 # Install dependencies
@@ -25,27 +11,48 @@ pnpm --filter @workspace/contracts install
 # Compile
 pnpm --filter @workspace/contracts run compile
 
-# Test (with Zama fhevm mock plugin)
-pnpm --filter @workspace/contracts run test
-
-# Deploy to Zama Devnet
-DEPLOYER_PRIVATE_KEY=0x... pnpm --filter @workspace/contracts run deploy:zama
+# Deploy (requires DEPLOYER_PRIVATE_KEY and Sepolia ETH)
+DEPLOYER_PRIVATE_KEY=0x... pnpm --filter @workspace/contracts run deploy:sepolia
 ```
-
-## Zama Network
-
-- **Chain ID**: 9000
-- **RPC**: https://devnet.zama.ai
-- **Explorer**: https://explorer.devnet.zama.ai
-- **Faucet**: https://faucet.zama.ai
 
 ## After Deployment
 
-Update the `contract_config` table to point the API to your deployed contract:
+`deploy:sepolia` automatically:
 
-```sql
-INSERT INTO contract_config (contract_address, network_id, network_name, abi)
-VALUES ('0xYOUR_DEPLOYED_ADDRESS', 9000, 'Zama Devnet', '...');
+1. Writes addresses to `lib/addresses/src/address.ts` and frontend ABIs.
+2. **Clears and reseeds the database** when `DATABASE_URL` is set in repo-root `.ENV` (wipes old txs, dividends, investors; inserts fresh `property` + `contract_config`).
+
+Manual DB reset anytime: `pnpm run db:reset` from repo root.
+
+### Verify on Etherscan
+
+Add `ETHERSCAN_API_KEY` to repo-root `.ENV`, then:
+
+```bash
+pnpm --filter @workspace/contracts run verify:sepolia
 ```
 
-The frontend will automatically load the contract address and ABI from the API.
+Contract addresses are **not** stored in `.ENV`. The frontend and API read from `lib/addresses/src/address.ts`.
+
+## Network
+
+- **Chain**: Sepolia (11155111)
+- **FHE SDK**: `@zama-fhe/relayer-sdk` with `SepoliaConfig`
+- **RPC**: https://ethereum-sepolia-rpc.publicnode.com
+
+## Contracts
+
+### `ConfidentialTestUSDC.sol` (ctUSDC)
+Zama-style confidential payment token. Balances and transfer amounts are encrypted (`euint64`).
+
+### `ShieldCapProperty.sol`
+
+| Function | Description |
+|---|---|
+| `purchaseShares` | Primary buy — encrypted share amount; confidential ctUSDC pull to contract |
+| `createSecondaryListing` | FCFS resale — list encrypted share lot at public price/share |
+| `buySecondaryListing` | Partial fill at listing price; ctUSDC paid seller-to-buyer |
+| `distributeDividend` | Owner pulls confidential ctUSDC from their wallet into escrow; encrypted payouts accrue per investor |
+| `claimDividend` | Investor claims accrued payout from contract escrow (ctUSDC transfer, not mint) |
+| `balanceOfProperty` | Encrypted share balance per property |
+| `dividendOf` | Encrypted accrued dividend per investor |

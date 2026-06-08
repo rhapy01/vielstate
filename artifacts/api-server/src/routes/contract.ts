@@ -1,117 +1,50 @@
+import { readFileSync, existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { contractConfigTable } from "@workspace/db";
+import {
+  NETWORK_NAME,
+  PAYMENT_TOKEN_DECIMALS,
+  PAYMENT_TOKEN_SYMBOL,
+  SEPOLIA_CHAIN_ID,
+  SHIELDCAP_CONTRACT_ADDRESS,
+  TEST_USDC_ADDRESS,
+} from "@workspace/addresses";
 
 const router = Router();
 
-// Minimal ConfidentialERC20-style ABI for ShieldCapProperty
-const SHIELDCAP_ABI = [
-  {
-    "type": "function",
-    "name": "purchaseShares",
-    "inputs": [
-      { "name": "encryptedAmount", "type": "bytes32", "internalType": "einput" },
-      { "name": "inputProof", "type": "bytes", "internalType": "bytes" }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "transferShares",
-    "inputs": [
-      { "name": "to", "type": "address", "internalType": "address" },
-      { "name": "encryptedAmount", "type": "bytes32", "internalType": "einput" },
-      { "name": "inputProof", "type": "bytes", "internalType": "bytes" }
-    ],
-    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "distributeDividend",
-    "inputs": [
-      { "name": "totalRevenue", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "balanceOf",
-    "inputs": [
-      { "name": "account", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "euint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "totalShares",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "MAX_OWNERSHIP_BPS",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "event",
-    "name": "SharesPurchased",
-    "inputs": [
-      { "name": "buyer", "type": "address", "indexed": true },
-      { "name": "timestamp", "type": "uint256", "indexed": false }
-    ]
-  },
-  {
-    "type": "event",
-    "name": "ConfidentialTransfer",
-    "inputs": [
-      { "name": "from", "type": "address", "indexed": true },
-      { "name": "to", "type": "address", "indexed": true },
-      { "name": "timestamp", "type": "uint256", "indexed": false }
-    ]
-  },
-  {
-    "type": "event",
-    "name": "DividendDistributed",
-    "inputs": [
-      { "name": "totalRevenue", "type": "uint256", "indexed": false },
-      { "name": "round", "type": "uint256", "indexed": false }
-    ]
-  },
-  {
-    "type": "event",
-    "name": "OwnershipCapRejected",
-    "inputs": [
-      { "name": "buyer", "type": "address", "indexed": true },
-      { "name": "timestamp", "type": "uint256", "indexed": false }
-    ]
+function loadAbiFromArtifact(): unknown[] {
+  const artifactPath = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../../lib/contracts/artifacts/src/ShieldCapProperty.sol/ShieldCapProperty.json",
+  );
+  if (!existsSync(artifactPath)) {
+    throw new Error(`Contract artifact not found at ${artifactPath}`);
   }
-];
+  const artifact = JSON.parse(readFileSync(artifactPath, "utf8")) as { abi: unknown[] };
+  return artifact.abi;
+}
 
-router.get("/", async (req, res) => {
-  const rows = await db.select().from(contractConfigTable).limit(1);
-  if (!rows.length) {
-    // Return mock config for demo purposes before real deployment
-    return res.json({
-      contractAddress: "0x0000000000000000000000000000000000000000",
-      networkId: 9000,
-      networkName: "Zama Devnet",
-      abi: SHIELDCAP_ABI,
+function contractConfig() {
+  return {
+    contractAddress: SHIELDCAP_CONTRACT_ADDRESS,
+    paymentTokenAddress: TEST_USDC_ADDRESS,
+    paymentTokenSymbol: PAYMENT_TOKEN_SYMBOL,
+    paymentTokenDecimals: PAYMENT_TOKEN_DECIMALS,
+    networkId: SEPOLIA_CHAIN_ID,
+    networkName: NETWORK_NAME,
+    abi: loadAbiFromArtifact(),
+  };
+}
+
+router.get("/config", async (_req, res) => {
+  try {
+    return res.json(contractConfig());
+  } catch (err) {
+    return res.status(503).json({
+      error: err instanceof Error ? err.message : "Contract config unavailable",
     });
   }
-  const row = rows[0];
-  return res.json({
-    contractAddress: row.contractAddress,
-    networkId: row.networkId,
-    networkName: row.networkName,
-    abi: JSON.parse(row.abi),
-  });
 });
 
 export default router;

@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Impl",
+  "sourceName": "@fhevm/solidity/lib/Impl.sol",
+  "abi": [],
+  "bytecode": "0x6080806040523460175760399081601c823930815050f35b5f80fdfe5f80fdfea2646970667358221220846df7fe95c417f5349216da7ec68ef91d3790e47190ea3dad59d7b2dd31680d64736f6c634300081c0033",
+  "deployedBytecode": "0x5f80fdfea2646970667358221220846df7fe95c417f5349216da7ec68ef91d3790e47190ea3dad59d7b2dd31680d64736f6c634300081c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

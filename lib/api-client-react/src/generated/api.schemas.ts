@@ -44,6 +44,9 @@ export type ContractConfigAbiItem = { [key: string]: unknown };
 
 export interface ContractConfig {
   contractAddress: string;
+  paymentTokenAddress?: string | null;
+  paymentTokenSymbol?: string | null;
+  paymentTokenDecimals?: number | null;
   networkId: number;
   networkName: string;
   abi: ContractConfigAbiItem[];

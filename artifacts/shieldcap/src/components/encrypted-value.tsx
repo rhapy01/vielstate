@@ -41,11 +41,6 @@ export function EncryptedValue({ value, label, isDecrypted, onDecrypt, isDecrypt
           </Button>
         )}
       </div>
-      {!isDecrypted && (
-        <div className="text-[10px] font-mono text-muted-foreground/70 uppercase">
-          Encrypted via FHE Zama Protocol
-        </div>
-      )}
     </div>
   );
 }

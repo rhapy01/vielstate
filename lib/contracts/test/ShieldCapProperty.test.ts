@@ -1,73 +1,46 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import hre from "hardhat";
 
-/**
- * Unit tests for ShieldCapProperty.
- *
- * NOTE: FHE operations (TFHE.asEuint64, TFHE.le, TFHE.decrypt) require the
- * Zama co-processor and cannot run on a standard Hardhat network. These tests
- * document the expected behavior for use with the Zama devnet / Zama mock lib.
- *
- * To run against Zama mock: use `fhevm-hardhat-plugin` with mockFHEVM mode.
- */
 describe("ShieldCapProperty", () => {
   async function deploy() {
-    const [owner, investorA, investorB, investorC] = await ethers.getSigners();
-    const ShieldCapProperty = await ethers.getContractFactory("ShieldCapProperty");
-    const contract = await ShieldCapProperty.deploy();
+    const [owner, investorA] = await hre.ethers.getSigners();
+    const TestUSDC = await hre.ethers.getContractFactory("TestUSDC");
+    const usdc = await TestUSDC.deploy();
+    await usdc.waitForDeployment();
+
+    const ShieldCapProperty = await hre.ethers.getContractFactory("ShieldCapProperty");
+    const contract = await ShieldCapProperty.deploy(await usdc.getAddress());
     await contract.waitForDeployment();
-    return { contract, owner, investorA, investorB, investorC };
+
+    return { contract, usdc, owner, investorA };
   }
 
   it("should deploy and set owner correctly", async () => {
-    const { contract, owner } = await deploy();
+    const { contract, usdc, owner } = await deploy();
     expect(await contract.owner()).to.equal(owner.address);
-    expect(await contract.TOTAL_SHARES()).to.equal(50_000n);
-    expect(await contract.MAX_SHARES()).to.equal(10_000n);
+    expect(await contract.MAX_OWNERSHIP_BPS()).to.equal(2000n);
+    expect(await contract.paymentToken()).to.equal(await usdc.getAddress());
+    expect(await contract.nextPropertyId()).to.equal(1n);
   });
 
-  it("should have correct constants", async () => {
+  it("should start with zero investors for property 1 after listing", async () => {
+    const { contract, owner } = await deploy();
+    await contract.createProperty(
+      "Test Property",
+      "Test City",
+      "https://example.com/img.jpg",
+      "Test description",
+      1_000_000n,
+      10_000n,
+      1_000_000n,
+    );
+    expect(await contract.investorCount(1)).to.equal(0n);
+    expect(await contract.nextPropertyId()).to.equal(2n);
+  });
+
+  it("should expose confidential protocol id on hardhat", async () => {
     const { contract } = await deploy();
-    expect(await contract.TOTAL_SHARES()).to.equal(50_000n);
-    // 20% cap
-    expect(await contract.MAX_SHARES()).to.equal(10_000n);
-  });
-
-  it("should start with 0 investors", async () => {
-    const { contract } = await deploy();
-    expect(await contract.investorCount()).to.equal(0n);
-  });
-
-  it("should start with dividendRound = 0", async () => {
-    const { contract } = await deploy();
-    expect(await contract.dividendRound()).to.equal(0n);
-  });
-
-  /**
-   * FHE-dependent tests — require Zama mock environment.
-   * Document expected behavior:
-   *
-   * - purchaseShares: adds to encrypted balance, emits SharesPurchased
-   * - purchaseShares (cap exceeded): emits OwnershipCapRejected, reverts
-   * - transferShares: moves encrypted balance, emits ConfidentialTransfer
-   * - distributeDividend: sets encrypted payouts per investor, increments round
-   */
-  it("documents: purchaseShares emits SharesPurchased event (requires FHE mock)", async () => {
-    // This test would pass with Zama fhevm mock:
-    // const { contract, investorA, fhevmInstance } = await deploy();
-    // const input = fhevmInstance.createEncryptedInput(contractAddr, investorA.address);
-    // input.add64(1000n);
-    // const { handles, inputProof } = await input.encrypt();
-    // await expect(contract.connect(investorA).purchaseShares(handles[0], inputProof, { value: ... }))
-    //   .to.emit(contract, "SharesPurchased").withArgs(investorA.address, anyValue);
-    expect(true).to.be.true;
-  });
-
-  it("documents: ownership cap rejects >20% purchase (requires FHE mock)", async () => {
-    // const input = fhevmInstance.createEncryptedInput(...);
-    // input.add64(10001n); // exceeds MAX_SHARES = 10_000
-    // await expect(contract.connect(investorC).purchaseShares(...))
-    //   .to.emit(contract, "OwnershipCapRejected");
-    expect(true).to.be.true;
+    const protocolId = await contract.confidentialProtocolId();
+    expect(protocolId).to.equal(hre.ethers.MaxUint256);
   });
 });

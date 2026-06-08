@@ -26,7 +26,7 @@ export default function Property() {
     <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-bold font-sans tracking-tight">Property Details</h1>
-        <p className="text-muted-foreground font-mono text-sm mt-1">Kampala Heights Apartments — Public information only</p>
+        <p className="text-muted-foreground font-mono text-sm mt-1">Kampala Heights Apartments. Public information only.</p>
       </div>
 
       {/* Property overview */}

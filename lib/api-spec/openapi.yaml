@@ -92,6 +92,24 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/TransactionEvent"
+    post:
+      operationId: recordTransaction
+      tags: [transactions]
+      summary: Record an on-chain transaction event
+      description: Persists a transaction event after a confirmed on-chain interaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionInput"
+      responses:
+        "201":
+          description: Transaction recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionEvent"
 
   /dividends:
     get:
@@ -274,6 +292,15 @@ components:
       properties:
         contractAddress:
           type: string
+        paymentTokenAddress:
+          type: string
+          nullable: true
+        paymentTokenSymbol:
+          type: string
+          nullable: true
+        paymentTokenDecimals:
+          type: integer
+          nullable: true
         networkId:
           type: integer
         networkName:
@@ -283,6 +310,20 @@ components:
           items:
             type: object
             additionalProperties: true
+
+    TransactionInput:
+      type: object
+      required: [txHash, eventType, blockNumber, walletAddress]
+      properties:
+        txHash:
+          type: string
+        eventType:
+          type: string
+          enum: [Purchase, Transfer, DividendDistribution, CapRejected]
+        blockNumber:
+          type: integer
+        walletAddress:
+          type: string
 
     TransactionEvent:
       type: object
