@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseUnits } from "ethers";
 import { useWallet, useIsCorrectNetwork } from "@/contexts/wallet-context";
 import { useFhevm } from "@/contexts/fhevm-context";
 import { useShieldCapContract, formatTxError } from "@/hooks/use-shieldcap";
 import { useListProperties, useOnChainListingSupplies } from "@/hooks/use-marketplace";
+import {
+  readCachedListingSupply,
+  syncOnChainListingCreated,
+} from "@/lib/on-chain-listing-supply";
 import { useRegisterInvestor } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +36,6 @@ export default function Market() {
     cancelSecondaryListing,
     readActiveSecondaryListings,
     readPropertiesWithBalance,
-    readListingRemainingShares,
   } = useShieldCapContract();
   const registerInvestor = useRegisterInvestor();
   const queryClient = useQueryClient();
@@ -47,8 +50,9 @@ export default function Market() {
   const [actionError, setActionError] = useState<Record<number, string>>({});
   const [buyingId, setBuyingId] = useState<number | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [syncingSupplyId, setSyncingSupplyId] = useState<number | null>(null);
+  const [registerShares, setRegisterShares] = useState<Record<number, string>>({});
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
-  const [remainingShares, setRemainingShares] = useState<Record<number, string>>({});
 
   const tokenLabel = paymentTokenSymbol ?? "ctUSDC";
 
@@ -71,6 +75,76 @@ export default function Market() {
 
   const propertyNameById = (id: number) => properties?.find((p) => p.id === id)?.name ?? `Property #${id}`;
   const myListings = listings?.filter((l) => address && l.seller === address.toLowerCase()) ?? [];
+
+  const myListingIds = listings
+    ?.filter((l) => address && l.seller === address.toLowerCase())
+    .map((l) => l.id)
+    .join(",") ?? "";
+
+  useEffect(() => {
+    if (!myListingIds || !address) return;
+    let cancelled = false;
+    (async () => {
+      for (const listingId of myListingIds.split(",").map(Number)) {
+        if (listingSupplies?.[listingId]) continue;
+        const cached = readCachedListingSupply(listingId);
+        if (!cached) continue;
+        try {
+          await syncOnChainListingCreated({
+            onChainListingId: listingId,
+            propertyId: cached.propertyId,
+            sellerWallet: address,
+            sharesListed: cached.sharesListed,
+            pricePerShare: cached.pricePerShare,
+            createTxHash: cached.createTxHash ?? "",
+          });
+          if (!cancelled) {
+            void refetchSupplies();
+          }
+        } catch {
+          // manual register still available
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [myListingIds, listingSupplies, address, refetchSupplies]);
+
+  const handleRegisterSupply = async (listing: { id: number; propertyId: number; pricePerShare: number }) => {
+    if (!address) return;
+    const cached = readCachedListingSupply(listing.id);
+    const sharesListed = parseInt(registerShares[listing.id] ?? String(cached?.sharesListed ?? ""), 10);
+    if (isNaN(sharesListed) || sharesListed <= 0) {
+      setActionError((prev) => ({
+        ...prev,
+        [listing.id]: "Enter how many shares you listed",
+      }));
+      return;
+    }
+
+    setSyncingSupplyId(listing.id);
+    setActionError((prev) => ({ ...prev, [listing.id]: "" }));
+    try {
+      await syncOnChainListingCreated({
+        onChainListingId: listing.id,
+        propertyId: listing.propertyId,
+        sellerWallet: address,
+        sharesListed,
+        pricePerShare: listing.pricePerShare,
+        createTxHash: cached?.createTxHash ?? "",
+      });
+      void refetchSupplies();
+      void queryClient.invalidateQueries({ queryKey: ["on-chain-listing-supply"] });
+    } catch (err) {
+      setActionError((prev) => ({
+        ...prev,
+        [listing.id]: err instanceof Error ? err.message : "Could not register listing supply",
+      }));
+    } finally {
+      setSyncingSupplyId(null);
+    }
+  };
 
   const handleCreateListing = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,19 +226,6 @@ export default function Market() {
       }));
     } finally {
       setBuyingId(null);
-    }
-  };
-
-  const handleRevealRemaining = async (listingId: number, seller: string) => {
-    if (!signer) return;
-    try {
-      const raw = await readListingRemainingShares(listingId, signer, seller);
-      setRemainingShares((prev) => ({ ...prev, [listingId]: String(raw) }));
-    } catch (err) {
-      setActionError((prev) => ({
-        ...prev,
-        [listingId]: err instanceof Error ? err.message : "Could not decrypt remaining shares",
-      }));
     }
   };
 
@@ -289,7 +350,9 @@ export default function Market() {
           {address && myListings.length > 0 && (
             <div className="p-5 bg-card border border-border rounded-xl space-y-3">
               <h2 className="font-mono font-bold text-sm">Your listings</h2>
-              {myListings.map((listing) => (
+              {myListings.map((listing) => {
+                const cachedSupply = readCachedListingSupply(listing.id);
+                return (
                 <div key={listing.id} className="p-3 bg-muted/40 rounded-lg space-y-2 text-xs font-mono">
                   <div>
                     #{listing.id} · {propertyNameById(listing.propertyId)}
@@ -301,20 +364,37 @@ export default function Market() {
                     <div className="text-muted-foreground">
                       {listingSupplies[listing.id].sharesRemaining} / {listingSupplies[listing.id].sharesListed} shares left
                     </div>
-                  ) : remainingShares[listing.id] !== undefined ? (
-                    <div className="text-muted-foreground">
-                      ~{remainingShares[listing.id]} shares remaining
-                    </div>
                   ) : null}
                   {!listingSupplies?.[listing.id] && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-[10px] h-7"
-                      onClick={() => void handleRevealRemaining(listing.id, listing.seller)}
-                    >
-                      Show remaining
-                    </Button>
+                    <div className="space-y-2">
+                      <Label className="font-mono text-[10px] text-muted-foreground">
+                        Shares you listed
+                      </Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        placeholder={
+                          cachedSupply?.sharesListed
+                            ? String(cachedSupply.sharesListed)
+                            : "e.g. 10"
+                        }
+                        value={registerShares[listing.id] ?? ""}
+                        onChange={(e) =>
+                          setRegisterShares((prev) => ({ ...prev, [listing.id]: e.target.value }))
+                        }
+                        className="font-mono text-xs h-8"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-[10px] h-7"
+                        disabled={syncingSupplyId === listing.id}
+                        onClick={() => void handleRegisterSupply(listing)}
+                      >
+                        {syncingSupplyId === listing.id ? "Registering..." : "Register supply"}
+                      </Button>
+                    </div>
                   )}
                   <Button
                     variant="outline"
@@ -325,8 +405,14 @@ export default function Market() {
                   >
                     {cancellingId === listing.id ? "Cancelling..." : "Cancel listing"}
                   </Button>
+                  {actionError[listing.id] && (
+                    <p className="text-[10px] font-mono text-destructive break-all [overflow-wrap:anywhere]">
+                      {actionError[listing.id]}
+                    </p>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -367,8 +453,8 @@ export default function Market() {
                 const estCost = (parseFloat(buyAmounts[listing.id] ?? "0") || 0) * listing.pricePerShare;
 
                 return (
-                  <div key={listing.id} className="p-4 bg-card border border-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
+                  <div key={listing.id} className="p-4 bg-card border border-border rounded-xl flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0 overflow-hidden">
+                    <div className="space-y-1 min-w-0 flex-1">
                       <div className="font-mono font-bold text-sm">
                         #{listing.id} · {propertyNameById(listing.propertyId)}
                       </div>
@@ -386,13 +472,13 @@ export default function Market() {
                       ) : null}
                     </div>
 
-                    <div className="shrink-0 space-y-2">
+                    <div className="w-full sm:w-auto sm:max-w-[min(100%,14rem)] min-w-0 space-y-2">
                       {!address ? (
                         <Button size="sm" onClick={() => void connect()} className="font-mono text-xs">
                           Connect to buy
                         </Button>
                       ) : isSeller ? (
-                        <span className="text-xs font-mono text-muted-foreground">Your listing</span>
+                        <span className="text-xs font-mono text-muted-foreground block">Your listing</span>
                       ) : soldOut ? (
                         <span className="text-xs font-mono text-muted-foreground">Sold out</span>
                       ) : (
@@ -423,7 +509,11 @@ export default function Market() {
                           </Button>
                         </>
                       )}
-                      {err && <p className="text-[10px] font-mono text-destructive max-w-[180px]">{err}</p>}
+                      {err && !isSeller && (
+                        <p className="text-[10px] font-mono text-destructive break-all [overflow-wrap:anywhere]">
+                          {err}
+                        </p>
+                      )}
                     </div>
                   </div>
                 );

@@ -54,8 +54,12 @@ router.post("/", async (req, res) => {
       eventType,
       blockNumber,
       walletAddress,
-      shareCount: eventType === "Purchase" ? shareCount ?? null : null,
-      propertyId: eventType === "Purchase" ? propertyId ?? null : null,
+      shareCount:
+        eventType === "Purchase" || eventType === "ListingCreated" || eventType === "ListingPurchased"
+          ? shareCount ?? null
+          : null,
+      propertyId:
+        eventType === "Purchase" || eventType === "ListingCreated" ? propertyId ?? null : null,
       timestamp: new Date(),
     })
     .returning();

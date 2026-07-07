@@ -226,7 +226,7 @@ contract ShieldCapProperty is ZamaEthereumConfig, Ownable {
             active: true
         });
 
-        FHE.allowThis(listed);
+        _allowListingRemaining(listed, msg.sender);
 
         emit SecondaryListingCreated(
             listingId,
@@ -281,7 +281,7 @@ contract ShieldCapProperty is ZamaEthereumConfig, Ownable {
         ebool success = FHE.and(FHE.gt(fill, FHE.asEuint64(0)), withinCap);
 
         listing.sharesRemaining = FHE.select(success, FHE.sub(remaining, fill), remaining);
-        FHE.allowThis(listing.sharesRemaining);
+        _allowListingRemaining(listing.sharesRemaining, listing.seller);
 
         _balances[propertyId][buyer] = FHE.select(success, newBuyerBal, buyerBal);
         _allowBalance(propertyId, buyer);
@@ -391,6 +391,11 @@ contract ShieldCapProperty is ZamaEthereumConfig, Ownable {
     function _allowBalance(uint256 propertyId, address account) private {
         FHE.allowThis(_balances[propertyId][account]);
         FHE.allow(_balances[propertyId][account], account);
+    }
+
+    function _allowListingRemaining(euint64 shares, address seller) private {
+        FHE.allowThis(shares);
+        FHE.allow(shares, seller);
     }
 
     function _allowForPaymentToken(euint64 amount) private {

@@ -1,6 +1,8 @@
-# ShieldCap
+# Vielstate (ShieldCap)
 
-A confidential real-estate ownership platform using Zama fhEVM. Investors purchase fractional shares in "Kampala Heights Apartments" ($5M, 50,000 shares) with balances, transfers, and dividend payouts fully encrypted on-chain.
+A fractional real-estate investing platform: buy ownership shares, earn income, trade on a secondary market, and manage from one dashboard. **Confidential investing** — powered by Zama fhEVM — is the differentiator: balances, transfers, and dividend payouts stay encrypted on-chain.
+
+The live demo uses **Kampala Heights Apartments** ($5M, 50,000 shares) as a sample listing on Sepolia testnet.
 
 ## Run & Operate
 
@@ -42,11 +44,11 @@ A confidential real-estate ownership platform using Zama fhEVM. Investors purcha
 
 ## Product
 
-- **Dashboard** — property overview, public aggregate protocol metrics
-- **Property** — transaction feed, dividend history, privacy guarantee banner
-- **Portfolio** — private encrypted balance (blur/reveal), ownership %, cap warning, personal transaction history
-- **Market** — confidential P2P share transfer form, transfer activity feed showing only event types (not amounts)
-- **Purchase** — buy shares on Sepolia with FHE-encrypted amounts
+- **Explore / Listings** — browse fractional real estate; invest in shares
+- **Portfolio** — manage holdings, dividends, and performance (confidential balances decrypt on demand)
+- **Secondary Market** — list and buy shares P2P
+- **Dashboard / Property** — public property metrics, transaction feed, dividend history
+- **Purchase** — buy shares on Sepolia (amounts encrypted on-chain via Zama)
 
 ## Deploying the Contract
 

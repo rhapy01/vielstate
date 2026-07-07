@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Shield, Moon, Sun, Menu, X, Wallet } from "lucide-react";
+import { VielstateLogo } from "@/components/vielstate-logo";
 import { useTheme } from "@/contexts/theme-context";
 import { useWallet } from "@/contexts/wallet-context";
 import { Button } from "@/components/ui/button";
@@ -26,11 +27,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-                <Shield className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="font-mono font-bold text-lg tracking-tight">VIELSTATE</span>
+            <div className="flex items-center cursor-pointer">
+              <VielstateLogo className="h-9 w-auto max-w-[10rem] rounded-md" />
             </div>
           </Link>
 
@@ -124,18 +122,13 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-1 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-                <Shield className="w-3.5 h-3.5 text-primary-foreground" />
-              </div>
-              <span className="font-mono font-bold tracking-tight">VIELSTATE</span>
-            </div>
+            <VielstateLogo className="h-8 w-auto max-w-[9rem] rounded-md" />
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Fractional property ownership with encrypted balances. Your holdings stay yours alone.
+              Fractional real estate investing — buy shares, earn income, trade on the marketplace, and manage your portfolio. Confidential positions powered by Zama.
             </p>
             <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block animate-pulse" />
-              Sepolia · Private balances
+              Sepolia testnet demo
             </div>
           </div>
 
@@ -167,7 +160,7 @@ export function Footer() {
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold">Property</h4>
+            <h4 className="text-sm font-semibold">Demo listing</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>Kampala Heights Apartments</li>
               <li>Kampala, Uganda</li>
@@ -184,7 +177,7 @@ export function Footer() {
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Shield className="w-3 h-3 text-primary" />
-              Privacy-first by design
+              Confidential investing by Zama
             </span>
           </div>
         </div>

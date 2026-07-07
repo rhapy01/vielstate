@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { onChainListingTable, shareListingTable } from "@workspace/db";
 import { eq, and, desc, inArray } from "drizzle-orm";
+import { backfillOnChainListingSupply } from "../lib/on-chain-listing-backfill";
 
 const router = Router();
 
@@ -31,6 +32,19 @@ router.get("/on-chain/supply", async (req, res) => {
       active: row.active,
     };
   }
+
+  for (const id of ids) {
+    if (supplies[String(id)]) continue;
+    try {
+      const backfilled = await backfillOnChainListingSupply(id);
+      if (backfilled) {
+        supplies[String(id)] = backfilled;
+      }
+    } catch {
+      // best-effort — client may register supply manually
+    }
+  }
+
   return res.json({ supplies });
 });
 

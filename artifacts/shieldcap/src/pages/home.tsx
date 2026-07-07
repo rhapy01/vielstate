@@ -51,7 +51,7 @@ export default function Home() {
           </div>
           
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {property.description} Vielstate keeps your ownership private on-chain while sharing only public property stats.
+            {property.description}
           </p>
 
           <div className="grid grid-cols-2 gap-4">
@@ -78,8 +78,8 @@ export default function Home() {
       <div className="p-4 bg-primary/10 border border-primary/20 rounded-md flex items-start gap-3 mt-8">
         <Shield className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="text-sm text-primary/90 font-mono">
-          <strong className="block text-primary mb-1">Privacy Guarantee</strong>
-          Individual balances, transfers, and wallet associations are encrypted via Zama fhEVM. The metrics above are provably computed over encrypted state without decryption.
+          <strong className="block text-primary mb-1">Confidential investing (differentiator)</strong>
+          Vielstate is a fractional real estate platform first. Zama fhEVM keeps individual balances, transfers, and returns private on-chain — the metrics above are public aggregates only.
         </div>
       </div>
     </div>

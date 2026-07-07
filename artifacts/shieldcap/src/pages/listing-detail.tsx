@@ -94,7 +94,8 @@ export default function ListingDetail() {
           <div className="flex items-start gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg">
             <Shield className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <p className="text-xs font-mono text-muted-foreground">
-              Individual ownership amounts stay encrypted on-chain via Zama FHE. Only your wallet can decrypt your balance.
+              <span className="text-primary font-bold">Differentiator:</span>{" "}
+              Ownership amounts stay confidential on-chain via Zama. Invest and earn as usual — only your wallet can decrypt your balance.
             </p>
           </div>
         </div>

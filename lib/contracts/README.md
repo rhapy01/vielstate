@@ -1,6 +1,6 @@
 # ShieldCap Smart Contracts
 
-Solidity contracts for the ShieldCap confidential real-estate platform on **Zama FHEVM (Sepolia testnet)**.
+Solidity contracts for **Vielstate** — a fractional real-estate investing platform on **Zama FHEVM (Sepolia testnet)**. Confidential share balances and payouts are the platform differentiator.
 
 ## Deploy to Sepolia
 

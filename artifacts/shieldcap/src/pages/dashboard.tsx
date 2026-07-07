@@ -18,7 +18,7 @@ export default function Dashboard() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Property overview and public activity. Individual holdings stay private.</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Property overview, public activity, and quick links to invest, earn, trade, and manage.</p>
         </div>
         <Link href="/property">
           <Button variant="outline" size="sm" className="font-mono gap-1.5 text-xs">
@@ -100,8 +100,8 @@ export default function Dashboard() {
             <Shield className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold mb-1">Access your private portfolio</h3>
-            <p className="text-sm text-muted-foreground">Connect your wallet to view your portfolio and dividend history.</p>
+            <h3 className="font-bold mb-1">Manage your portfolio</h3>
+            <p className="text-sm text-muted-foreground">Connect your wallet to track holdings, dividends, and transactions.</p>
           </div>
           <Button onClick={() => void connect()} disabled={isConnecting} className="font-mono text-sm shrink-0" data-testid="button-connect-dashboard">
             {isConnecting ? "Connecting..." : "Connect Wallet"}

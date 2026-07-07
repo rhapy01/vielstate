@@ -6,6 +6,39 @@ export type OnChainListingSupply = {
   active: boolean;
 };
 
+export type CachedListingSupply = {
+  onChainListingId: number;
+  propertyId: number;
+  sellerWallet: string;
+  sharesListed: number;
+  sharesRemaining: number;
+  pricePerShare: number;
+  createTxHash?: string;
+};
+
+const CACHE_PREFIX = "vielstate-listing-supply:";
+
+export function cacheListingSupplyLocally(payload: CachedListingSupply) {
+  try {
+    localStorage.setItem(
+      `${CACHE_PREFIX}${payload.onChainListingId}`,
+      JSON.stringify(payload),
+    );
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+export function readCachedListingSupply(listingId: number): CachedListingSupply | null {
+  try {
+    const raw = localStorage.getItem(`${CACHE_PREFIX}${listingId}`);
+    if (!raw) return null;
+    return JSON.parse(raw) as CachedListingSupply;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchOnChainListingSupplies(
   listingIds: number[],
 ): Promise<Record<number, OnChainListingSupply>> {
@@ -30,11 +63,16 @@ export async function syncOnChainListingCreated(payload: {
   pricePerShare: number;
   createTxHash: string;
 }) {
-  await fetch(apiUrl("/api/listings/on-chain"), {
+  const res = await fetch(apiUrl("/api/listings/on-chain"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(body || "Failed to register listing supply");
+  }
+  return res.json();
 }
 
 export async function syncOnChainListingFill(payload: {

@@ -72,12 +72,12 @@ export default function Property() {
         )}
       </section>
 
-      {/* Privacy notice */}
+      {/* Confidential investing note */}
       <div className="flex items-start gap-3 p-4 bg-primary/5 border border-primary/20 rounded-md">
         <Shield className="w-4 h-4 text-primary mt-0.5 shrink-0" />
         <p className="text-xs font-mono text-muted-foreground">
-          <span className="text-primary font-bold">Investor data is not visible here.</span>{" "}
-          Balances, ownership percentages, and transfer amounts are encrypted via Zama fhEVM and can only be decrypted by the owning wallet.
+          <span className="text-primary font-bold">Confidential investing:</span>{" "}
+          Individual balances and transfer amounts are not shown here. Zama fhEVM keeps investor positions private on-chain — only each wallet can decrypt its own data.
         </p>
       </div>
 

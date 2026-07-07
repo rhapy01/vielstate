@@ -258,7 +258,7 @@ export default function Landing() {
 
   // scroll step cycling
   useEffect(() => {
-    const t = setInterval(() => setActiveStep(s => (s + 1) % 3), 3200);
+    const t = setInterval(() => setActiveStep(s => (s + 1) % 4), 3200);
     return () => clearInterval(t);
   }, []);
 
@@ -297,24 +297,24 @@ export default function Landing() {
           <div ref={heroRef} className="reveal space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/8 text-primary text-xs font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Private fractional property ownership
+              Fractional real estate investing
             </div>
 
             <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight leading-[1.08]">
-              Own Real Estate.<br />
-              <span className="gradient-text">Stay Invisible.</span>
+              Real Estate Ownership,<br />
+              <span className="gradient-text">Reimagined.</span>
             </h1>
 
             <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-              Vielstate lets you own a slice of real estate without broadcasting your position to the world. Your balance, transfers, and dividends stay encrypted. Only you can see your numbers.
+              Invest in professionally managed property through fractional shares. Earn income, trade on the marketplace, and manage your portfolio — with confidential on-chain positions powered by Zama.
             </p>
 
             {/* Live mini-stats floating cards */}
             <div className="flex flex-wrap gap-3">
               {[
-                { icon: <Building className="w-4 h-4" />, value: formatCurrency(property?.valueUsd ?? 0), label: "Listed property value" },
+                { icon: <Building className="w-4 h-4" />, value: formatCurrency(property?.valueUsd ?? 0), label: "Demo listing value" },
                 { icon: <Users className="w-4 h-4" />, value: investorCount.toLocaleString(), label: "Investors" },
-                { icon: <Lock className="w-4 h-4" />, value: "100% Encrypted", label: "All balances" },
+                { icon: <RefreshCw className="w-4 h-4" />, value: "Trade", label: "Secondary market" },
               ].map(c => (
                 <div key={c.label} className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card border border-border shadow-sm hover:border-primary/30 hover:shadow-md transition-all animate-float" style={{ animationDelay: Math.random() * 1 + "s" }}>
                   <span className="text-primary">{c.icon}</span>
@@ -352,10 +352,10 @@ export default function Landing() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-              {/* Floating encrypted badge */}
-              <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur border border-white/20 text-white text-xs font-mono animate-pulse-glow">
-                <Lock className="w-3 h-3 text-primary" />
-                FHE Protected
+              {/* Demo listing badge */}
+              <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur border border-white/20 text-white text-xs font-mono">
+                <Building className="w-3 h-3 text-primary" />
+                Demo Listing
               </div>
 
               {/* Bottom info */}
@@ -377,14 +377,14 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Floating encrypted balance overlay */}
+            {/* Floating portfolio preview */}
             <div className="absolute -right-4 top-12 bg-card border border-border rounded-xl p-4 shadow-xl w-48 animate-float" style={{ animationDelay: "1s" }}>
               <div className="text-[10px] font-mono text-muted-foreground mb-2 flex items-center gap-1.5">
-                <Lock className="w-3 h-3 text-primary" />
-                Demo preview
+                <BarChart3 className="w-3 h-3 text-primary" />
+                Your portfolio
               </div>
               <div className="text-lg font-bold font-mono blur-sm select-none">████ shares</div>
-              <div className="text-[10px] font-mono text-muted-foreground mt-1">Connect wallet to see yours</div>
+              <div className="text-[10px] font-mono text-muted-foreground mt-1">Confidential until you decrypt</div>
             </div>
 
             {/* Floating tx card */}
@@ -426,12 +426,36 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ══════════════════════════════════════════════════ HOW IT WORKS */}
+      <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-4">
+            <TrendingUp className="w-3.5 h-3.5" />
+            How It Works
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight">One platform for fractional real estate</h2>
+          <p className="text-muted-foreground mt-3 max-w-2xl mx-auto text-sm leading-relaxed">
+            Vielstate combines investing, income distribution, secondary-market trading, and portfolio management into a single experience.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <SolutionCard delay={1} icon={<Users className="w-5 h-5" />} title="Invest"
+            body="Purchase fractional ownership shares in listed properties and build your position over time." />
+          <SolutionCard delay={2} icon={<Banknote className="w-5 h-5" />} title="Earn"
+            body="Receive your share of income generated by the properties you own." />
+          <SolutionCard delay={3} icon={<RefreshCw className="w-5 h-5" />} title="Trade"
+            body="Buy and sell ownership shares through the integrated marketplace whenever you choose." />
+          <SolutionCard delay={4} icon={<BarChart3 className="w-5 h-5" />} title="Manage"
+            body="Track investments, performance, and dividends from one dashboard." />
+        </div>
+      </section>
+
       {/* ══════════════════════════════════════════════════ PROBLEM STATEMENT */}
-      <section className="py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-muted/40 border-y border-border">
         <div ref={problemRef} className="reveal">
-          <div className="inline-flex items-center gap-2 text-xs font-mono text-destructive uppercase tracking-wider mb-5">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            The On-Chain Exposure Problem
+          <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-5">
+            <Shield className="w-3.5 h-3.5" />
+            Built for Confidential Investing
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div>
@@ -463,14 +487,14 @@ export default function Landing() {
 
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-5">
-                <Shield className="w-3.5 h-3.5" />
-                The Vielstate difference
+                <Lock className="w-3.5 h-3.5" />
+                What sets Vielstate apart
               </div>
               <h2 className="text-3xl font-bold tracking-tight mb-4">
-                Full privacy, enforced at the <span className="gradient-text">cryptographic level</span>
+                Confidential positions, <span className="gradient-text">powered by Zama</span>
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-8">
-                Zama's fhEVM lets smart contracts compute on encrypted data without ever decrypting it. Ownership caps are enforced, dividends are distributed, transfers are validated, all while your balance remains a ciphertext.
+                Privacy is not the product — it is the differentiator. Zama's fhEVM keeps ownership positions, transactions, and returns private on-chain while the platform still enforces caps, distributes dividends, and validates transfers.
               </p>
 
               <div className="relative rounded-xl overflow-hidden border border-border shadow-lg">
@@ -499,13 +523,13 @@ export default function Landing() {
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-4">
                 <Layers className="w-3.5 h-3.5" />
-                How FHE Works
+                How the differentiator works
               </div>
               <h2 className="text-3xl font-bold tracking-tight mb-3">
-                Encrypted data, computed without decrypting
+                Zama FHE: encrypted data, computed without decrypting
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Fully Homomorphic Encryption lets the smart contract add, subtract, compare, and divide encrypted numbers, producing correct results without ever seeing the plaintext values.
+                The invest–earn–trade–manage product runs normally. Under the hood, Fully Homomorphic Encryption lets smart contracts operate on encrypted balances without exposing plaintext values.
               </p>
             </div>
 
@@ -538,16 +562,16 @@ export default function Landing() {
           <div>
             <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-5">
               <Eye className="w-3.5 h-3.5" />
-              Try the demo
+              Confidential investing in action
             </div>
             <h2 className="text-3xl font-bold tracking-tight mb-4">
-              Your balance, only yours to see
+              Your position stays private
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              Every other investor's balance, every transfer amount, every dividend payout is stored as a ciphertext handle. Only the holder of the wallet key can re-encrypt and decrypt their own data.
+              Traditional blockchains expose balances and investment activity. Vielstate uses Zama to keep your share balance, transfers, and dividend payouts encrypted — only your wallet can decrypt your numbers.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Connect your wallet on Sepolia to decrypt your real FHE-protected on-chain balance.
+              Connect on Sepolia and open Portfolio to view your real on-chain balance.
             </p>
           </div>
 
@@ -581,7 +605,7 @@ export default function Landing() {
               <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
                   <Lock className="w-3 h-3 text-primary" />
-                  Demo: your private view
+                  Demo: your decrypted view
                 </div>
                 <Button
                   size="sm"
@@ -624,11 +648,11 @@ export default function Landing() {
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-4">
               <Shield className="w-3.5 h-3.5" />
-              Protocol Features
+              The differentiator
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">Privacy at every protocol layer</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Confidential at every protocol layer</h2>
             <p className="text-muted-foreground mt-3 max-w-xl mx-auto text-sm leading-relaxed">
-              Every step (buying, holding, transferring, earning) keeps your amounts private on the blockchain.
+              The same invest–earn–trade–manage flow you expect — with encrypted balances, transfers, and payouts on-chain.
             </p>
           </div>
 
@@ -648,28 +672,32 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════ HOW IT WORKS */}
       <section className="py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tight">Three steps to private ownership</h2>
-          <p className="text-muted-foreground mt-3 text-sm">Click each step to explore</p>
+          <h2 className="text-3xl font-bold tracking-tight">From first share to full portfolio</h2>
+          <p className="text-muted-foreground mt-3 text-sm">Click each step to explore the investor journey</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-3">
-            <StepCard n={1} icon={<Users className="w-4 h-4" />} title="Connect & Register"
-              body="Connect your Ethereum wallet. Your address is logged on-chain with no personal data and no KYC. You receive a blank encrypted balance handle (euint64 = 0)."
+            <StepCard n={1} icon={<Users className="w-4 h-4" />} title="Invest in listed properties"
+              body="Browse listings, connect your wallet, and purchase fractional ownership shares. Build a position in professionally managed real estate without buying the whole asset."
               active={activeStep === 0} onClick={() => setActiveStep(0)} />
-            <StepCard n={2} icon={<Lock className="w-4 h-4" />} title="Purchase Encrypted Shares"
-              body="Buy shares by providing an FHE-encrypted purchase amount via the Zama relayer SDK. The contract runs FHE.add and FHE.le to validate the ownership cap without revealing any balance."
+            <StepCard n={2} icon={<Banknote className="w-4 h-4" />} title="Earn your share of income"
+              body="When properties generate revenue, receive proportional dividend payouts. Track rounds and claim your share from Portfolio."
               active={activeStep === 1} onClick={() => setActiveStep(1)} />
-            <StepCard n={3} icon={<TrendingUp className="w-4 h-4" />} title="Earn Private Dividends"
-              body="When the owner distributes revenue, FHE.mul/div computes your proportional payout over encrypted data. You decrypt only your own payout using your wallet key."
+            <StepCard n={3} icon={<RefreshCw className="w-4 h-4" />} title="Trade on the marketplace"
+              body="List shares for sale or buy from other investors on the secondary market. Exit or adjust your position when you choose."
               active={activeStep === 2} onClick={() => setActiveStep(2)} />
+            <StepCard n={4} icon={<BarChart3 className="w-4 h-4" />} title="Manage from one dashboard"
+              body="Monitor holdings, transactions, and performance in Portfolio. Confidential balances stay encrypted on-chain until you decrypt them."
+              active={activeStep === 3} onClick={() => setActiveStep(3)} />
           </div>
 
           <div className="relative rounded-2xl overflow-hidden border border-border shadow-xl">
             <img
               src={[
                 "https://images.unsplash.com/photo-1560185009-5bf9f2849488?w=800&q=80",
-                "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&q=80",
+                "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&q=80",
+                "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80",
                 "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80",
               ][activeStep]}
               alt="Step illustration"
@@ -677,12 +705,12 @@ export default function Landing() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 bg-card/80 backdrop-blur rounded-xl p-4 border border-border">
-              <div className="text-xs font-mono text-primary mb-1">Step {activeStep + 1} / 3</div>
+              <div className="text-xs font-mono text-primary mb-1">Step {activeStep + 1} / 4</div>
               <div className="font-mono text-sm font-bold">
-                {["purchaseShares(einput, proof)", "FHE.add(balance, amount)", "FHE.mul(balance, revenue)"][activeStep]}
+                {["Explore listings → Buy shares", "Dividend rounds → Claim payout", "List or buy on Secondary Market", "Portfolio → Track & decrypt"][activeStep]}
               </div>
               <div className="text-xs font-mono text-muted-foreground mt-1">
-                {["Encrypted amount submitted", "Balance updated with no plaintext", "Proportional payout computed encrypted"][activeStep]}
+                {["Fractional ownership in listed real estate", "Your share of property-generated income", "Liquidity when you want it", "One place for your investments"][activeStep]}
               </div>
             </div>
           </div>
@@ -695,9 +723,12 @@ export default function Landing() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-wider mb-4">
               <Building className="w-3.5 h-3.5" />
-              The Asset
+              Demo Listing
             </div>
             <h2 className="text-3xl font-bold tracking-tight">Kampala Heights Apartments</h2>
+            <p className="text-muted-foreground text-sm mt-2 max-w-xl mx-auto">
+              A sample property in the live demo — not the product itself. Vielstate is the platform; Kampala Heights is one testnet listing.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
@@ -758,10 +789,10 @@ export default function Landing() {
             <Shield className="w-10 h-10 text-primary" />
           </div>
           <h2 className="text-4xl font-extrabold tracking-tight">
-            Try the demo on Sepolia testnet
+            Access property investments. Earn income. Trade when you choose.
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            Connect your wallet and buy encrypted shares on Sepolia. Get test tUSDC from the app sidebar after connecting.
+            Try the full platform on Sepolia testnet — invest in fractional shares, earn dividends, and trade on the marketplace. Confidential positions powered by Zama.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -792,9 +823,9 @@ export default function Landing() {
 
           <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-mono text-muted-foreground">
             {[
-              { icon: <Lock className="w-3.5 h-3.5" />, label: "Zero plaintext on-chain" },
-              { icon: <Shield className="w-3.5 h-3.5" />, label: "Encrypted on-chain" },
-              { icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "20% cap enforced cryptographically" },
+              { icon: <TrendingUp className="w-3.5 h-3.5" />, label: "Invest · Earn · Trade · Manage" },
+              { icon: <Shield className="w-3.5 h-3.5" />, label: "Confidential positions by Zama" },
+              { icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Sepolia testnet demo" },
             ].map(({ icon, label }) => (
               <span key={label} className="flex items-center gap-1.5 text-muted-foreground">
                 <span className="text-primary">{icon}</span>

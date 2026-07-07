@@ -9,5 +9,6 @@ attached_assets
 **/.replit-artifact
 artifacts/api-server/dist
 artifacts/shieldcap/dist
+artifacts/vielstate-video
 api/handler.mjs
 api/handler.mjs.map

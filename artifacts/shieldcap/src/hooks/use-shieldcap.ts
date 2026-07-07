@@ -15,6 +15,7 @@ import { normalizeEthAddress } from "@/lib/normalize-address";
 import { decryptFheHandle } from "@/lib/fhe-decrypt-session";
 import { getSepoliaReadProvider } from "@/lib/sepolia-read-provider";
 import {
+  cacheListingSupplyLocally,
   syncOnChainListingCancel,
   syncOnChainListingCreated,
   syncOnChainListingFill,
@@ -353,11 +354,22 @@ export function useShieldCapContract() {
           eventType: "ListingCreated",
           blockNumber: Number(receipt.blockNumber),
           walletAddress: address,
+          shareCount,
+          propertyId,
         });
       } catch {
         // best-effort
       }
       if (onChainListingId) {
+        cacheListingSupplyLocally({
+          onChainListingId,
+          propertyId,
+          sellerWallet: address.toLowerCase(),
+          sharesListed: shareCount,
+          sharesRemaining: shareCount,
+          pricePerShare: Number(formatUnits(pricePerShareUnits, paymentTokenDecimals)),
+          createTxHash: receipt.hash,
+        });
         try {
           await syncOnChainListingCreated({
             onChainListingId,
@@ -400,6 +412,7 @@ export function useShieldCapContract() {
           eventType: "ListingPurchased",
           blockNumber: Number(receipt.blockNumber),
           walletAddress: address,
+          shareCount,
         });
       } catch {
         // best-effort
@@ -481,11 +494,22 @@ export function useShieldCapContract() {
   );
 
   const readListingRemainingShares = useCallback(
-    async (listingId: number, readSigner: Signer, sellerAddress: string) => {
+    async (listingId: number, readSigner: Signer) => {
       if (!contract) return 0n;
+      const wallet = normalizeEthAddress(await readSigner.getAddress());
       const result = await contract.getSecondaryListing(listingId);
       const handle: string = result.sharesRemaining ?? result[2];
-      return decryptHandle(handle, readSigner, sellerAddress);
+      try {
+        return await decryptHandle(handle, readSigner, wallet);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("not authorized")) {
+          throw new Error(
+            "Cannot decrypt remaining shares for this listing yet. Register the listing supply instead — on-chain ACL for older listings may require a contract upgrade.",
+          );
+        }
+        throw err;
+      }
     },
     [contract, decryptHandle],
   );

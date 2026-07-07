@@ -2,7 +2,6 @@ import { useWallet } from "@/contexts/wallet-context";
 import { useTheme } from "@/contexts/theme-context";
 import { Link, useLocation } from "wouter";
 import {
-  Shield,
   Compass,
   Briefcase,
   RefreshCw,
@@ -20,6 +19,7 @@ import { useIsContractOwner } from "@/hooks/use-is-contract-owner";
 import { Button } from "@/components/ui/button";
 import { TestTokenClaimPanel } from "@/components/test-token-claim-panel";
 import { SepoliaNetworkBanner } from "@/components/sepolia-network-banner";
+import { VielstateLogo } from "@/components/vielstate-logo";
 import { useEffect, useState } from "react";
 
 const NAV = [
@@ -123,10 +123,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <aside className="hidden lg:flex w-60 border-r border-border bg-sidebar flex-col shrink-0">
         <Link href="/">
           <div className="h-14 flex items-center px-5 border-b border-border cursor-pointer">
-            <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center mr-2.5 shrink-0">
-              <Shield className="w-3.5 h-3.5 text-primary-foreground" />
-            </div>
-            <span className="font-mono font-bold text-base tracking-tight">VIELSTATE</span>
+            <VielstateLogo className="h-8 w-auto max-w-[9rem] rounded-md shrink-0" />
           </div>
         </Link>
 
@@ -151,13 +148,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <Menu className="w-4 h-4" />
               </button>
               <Link href="/">
-                <div className="flex items-center gap-2 cursor-pointer min-w-0">
-                  <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-                    <Shield className="w-3.5 h-3.5 text-primary-foreground" />
-                  </div>
-                  <span className="font-mono font-bold text-sm sm:text-base tracking-tight truncate lg:hidden">
-                    VIELSTATE
-                  </span>
+                <div className="flex items-center cursor-pointer min-w-0 lg:hidden">
+                  <VielstateLogo className="h-8 w-auto max-w-[8rem] rounded-md shrink-0" />
                 </div>
               </Link>
             </div>

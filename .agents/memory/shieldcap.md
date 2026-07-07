@@ -1,6 +1,6 @@
 ---
 name: ShieldCap project
-description: Full-stack confidential real-estate platform using Zama fhEVM — key conventions, gotchas, and decisions
+description: Vielstate — fractional real-estate investing platform (invest, earn, trade, manage). Confidential positions via Zama fhEVM are the differentiator, not the product itself. Key conventions, gotchas, and decisions.
 ---
 
 ## Key decisions

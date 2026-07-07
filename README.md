@@ -1,26 +1,38 @@
 # Vielstate
 
-**Own property. Keep your position private.**
+Vielstate is a platform for investing in fractional real estate.
 
-Vielstate is fractional real-estate investing where your share balance, transfers, and dividend payouts stay encrypted on the blockchain. Other people can see that activity happened, not how much you own or moved.
+Instead of purchasing an entire property, investors can buy ownership shares in professionally managed real estate, earn a portion of generated income, and trade their shares through an integrated marketplace.
+
+The platform combines real estate investing, portfolio management, income distribution, and secondary-market liquidity into a single experience.
 
 **Try the demo:** https://vielstate.vercel.app
 
+### How It Works
+
+**Invest** — Purchase fractional ownership shares in listed properties.
+
+**Earn** — Receive your share of property-generated income.
+
+**Trade** — Buy and sell ownership shares through the marketplace.
+
+**Manage** — Track your investments and performance from one dashboard.
+
+### Built for Confidential Investing
+
+Traditional blockchains expose balances, transactions, and investment activity to anyone.
+
+Vielstate uses confidential blockchain technology powered by **Zama** to keep ownership positions, transactions, and returns private while preserving the benefits of on-chain infrastructure.
+
+### Real Estate Ownership, Reimagined
+
+Access property investments. Earn income. Trade when you choose.
+
+Without exposing your financial position to the world.
+
 ---
 
-## What you can do
-
-| Action | What it means for you |
-|--------|------------------------|
-| **Buy shares** | Purchase a slice of a listed property. Your share count is encrypted before it reaches the chain. |
-| **View portfolio** | Connect your wallet and decrypt **only your** balance and ownership percentage. |
-| **Transfer shares** | Send shares to another wallet privately. The amount stays hidden from public view. |
-| **Track the property** | See public activity (purchases, transfers, dividends) without amounts or wallet holdings exposed. |
-| **Receive dividends** | When distributions run, your payout is computed on encrypted data; you decrypt your share yourself. |
-
----
-
-## Current property
+## Demo listing
 
 **Kampala Heights Apartments**, Nakasero, Kampala, Uganda
 
@@ -45,7 +57,9 @@ The live demo runs on **Sepolia testnet**: real wallet, real transactions, test 
 
 ---
 
-## Your privacy
+## Confidential investing (differentiator)
+
+Vielstate is a fractional real estate platform first. What sets it apart is **confidential blockchain technology** powered by **Zama** — your positions, transactions, and returns stay private on-chain.
 
 - **Public:** property details, event types (purchase, transfer, dividend), transaction hashes.  
 - **Private:** share balances, transfer amounts, dividend payouts (encrypted on-chain; only your wallet can decrypt your numbers).  
@@ -80,8 +94,8 @@ Check you’re on Sepolia, have test ETH, and approved the transaction in MetaMa
 Technical setup, contracts, and local run instructions live in [`replit.md`](replit.md) and [`lib/contracts/README.md`](lib/contracts/README.md).
 
 Verified contracts (Sepolia):
-- ShieldCapProperty: [0xF1f98668523555aFfCBba9E6025760281c5d596A](https://sepolia.etherscan.io/address/0xF1f98668523555aFfCBba9E6025760281c5d596A#code)
-- ConfidentialTestUSDC (ctUSDC): [0x8dffeB22EBc2D8d5b2b35cD3abc2B2818eFF3758](https://sepolia.etherscan.io/address/0x8dffeB22EBc2D8d5b2b35cD3abc2B2818eFF3758#code)
+- ShieldCapProperty: [0x3D74942B44E5Ea09995b8fdFe88E2d1157e4A6d4](https://sepolia.etherscan.io/address/0x3D74942B44E5Ea09995b8fdFe88E2d1157e4A6d4#code)
+- ConfidentialTestUSDC (ctUSDC): [0xcac97D7cB93fa8251caA9D47E85b89c0BdDd215e](https://sepolia.etherscan.io/address/0xcac97D7cB93fa8251caA9D47E85b89c0BdDd215e#code)
 
 ---
 
@@ -89,4 +103,4 @@ Verified contracts (Sepolia):
 
 Building in the open. Issues and ideas welcome via your project repository.
 
-*Vielstate: private fractional property ownership.*
+*Vielstate: fractional real estate investing — with confidential positions powered by Zama.*

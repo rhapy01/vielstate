@@ -155,8 +155,8 @@ export default function Portfolio() {
           <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
             <Wallet className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold font-mono">Private Portfolio</h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">Connect your wallet to view your portfolio.</p>
+          <h1 className="text-2xl font-bold font-mono">Portfolio</h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">Connect your wallet to track your fractional real estate investments.</p>
         </div>
         <Button onClick={handleConnect} disabled={isConnecting} className="w-full max-w-sm font-mono">
           {isConnecting ? "Connecting..." : "Connect Wallet"}
@@ -169,12 +169,12 @@ export default function Portfolio() {
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight">Private Portfolio</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight">Portfolio</h1>
           <p className="text-muted-foreground text-xs font-mono mt-1 truncate">{address}</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded text-xs font-mono text-primary shrink-0 self-start">
           <Shield className="w-3 h-3" />
-          Sepolia FHEVM
+          Confidential by Zama
         </div>
       </div>
 

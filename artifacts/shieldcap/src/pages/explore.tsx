@@ -30,7 +30,7 @@ export default function Explore() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Explore Listings</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Browse tokenized properties on Sepolia. Buy shares directly from the feed or open a listing for details.
+            Browse fractional real estate listings on Sepolia. Invest in shares, earn income, and trade on the marketplace.
           </p>
         </div>
         {!address && (
